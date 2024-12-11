@@ -302,8 +302,9 @@ class RobotDynamics():
                 i_X_0 = plucker.spatial_mtimes(i_X_p[i],self.T_Base)
                 print('floating_base found')
                 if coupled:
-                    v0 = i_X_0@vel_base 
-                    a0 = i_X_0@acc_base
+                    v0 = i_X_0@vel_base
+                    a0 = i_X_0@ag
+                    # a0 = i_X_0@acc_base
                 else:
                     v0 = i_X_p[i]@cs.SX.zeros(6, 1) 
                     a0 = i_X_p[i]@ag
