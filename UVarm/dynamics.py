@@ -101,16 +101,16 @@ class RobotDynamics():
         tau, f_base, i_X_p, i_X_0s, Si = self.get_inverse_dynamics_rnea(gravity=gravity, floating_base_id=floating_base_id, coupled=coupled)
         ddX = self.ssyms.q_ddot
 
+        if floating_base_id!=None and floating_base_bias_f==None:
+            raise Exception("floating_base_bias_force required for floating base operations")
+        if floating_base_id==None and floating_base_bias_f!=None:
+            raise Exception("floating_base_id required for floating base operations")
+        
         if floating_base_id!=None and floating_base_bias_f!=None:
             tau = cs.vertcat(f_base, tau)
-            ddX = cs.vertcat(self.ssyms.a_base ,self.ssyms.q_ddot)
-            C = self.get_bias_force(gravity, floating_base_bias_f, coupled=coupled)
-        elif floating_base_id!=None and floating_base_bias_f==None:
-            raise Exception("floating_base_bias_force required for floating base operations")
-        elif floating_base_id==None and floating_base_bias_f!=None:
-            raise Exception("floating_base_id required for floating base operations")
-        else:
-            C = self.get_bias_force(gravity)
+            ddX = cs.vertcat(self.ssyms.a_base ,ddX)
+
+        C = self.get_bias_force(gravity, floating_base_bias_f, coupled=coupled)
 
         n = tau.size1()
         ID_delta = tau - C
@@ -449,6 +449,7 @@ class RobotDynamics():
         elif C.size1() == self.ssyms.q_dot.size1():
             xd = self.ssyms.q_dot
             u = self.ssyms.m_u
+            print('parameters used')
             parameters = self.ssyms.forward_dynamics_parameters
             states = self.ssyms.m_states
             tau = self.ssyms.m_u
@@ -468,19 +469,23 @@ class RobotDynamics():
         intg = cs.integrator('intg', 'rk', sys, 0, 1, {
                             'simplify': True, 'number_of_finite_elements': 15})
 
-
         res = intg(x0=states, u=u, p=parameters)  # evaluate with symbols
         x_next = res['xf']
 
         if C.size1() > self.ssyms.q_dot.size1():
             x_next[12] = cs.if_else(x_next[2] < 0, 0,  x_next[12]) # if vehicle on surface, no more up motion
             x_next[2] = cs.if_else(x_next[2] < 0, 0,  x_next[2]) # if vehicle on surface, keep on surface and not go up
-        
-        x_next[6:10] = cs.fmin(cs.fmax(x_next[6:10], self.ssyms.q_min), self.ssyms.q_max)
 
-        x_next[16] = cs.if_else(cs.logic_or(x_next[16] <= self.ssyms.q_min[0], x_next[16] >= self.ssyms.q_max[0]), 0, x_next[16])
-        x_next[17] = cs.if_else(cs.logic_or(x_next[17] <= self.ssyms.q_min[1], x_next[17] >= self.ssyms.q_max[1]), 0, x_next[17])
-        x_next[18] = cs.if_else(cs.logic_or(x_next[18] <= self.ssyms.q_min[2], x_next[18] >= self.ssyms.q_max[2]), 0, x_next[18])
-        x_next[19] = cs.if_else(cs.logic_or(x_next[19] <= self.ssyms.q_min[3], x_next[19] >= self.ssyms.q_max[3]), 0, x_next[19])
+            x_next[6:10] = cs.fmin(cs.fmax(x_next[6:10], self.ssyms.q_min), self.ssyms.q_max)
+            x_next[16] = cs.if_else(cs.logic_or(x_next[16] <= self.ssyms.q_min[0], x_next[16] >= self.ssyms.q_max[0]), 0, x_next[16])
+            x_next[17] = cs.if_else(cs.logic_or(x_next[17] <= self.ssyms.q_min[1], x_next[17] >= self.ssyms.q_max[1]), 0, x_next[17])
+            x_next[18] = cs.if_else(cs.logic_or(x_next[18] <= self.ssyms.q_min[2], x_next[18] >= self.ssyms.q_max[2]), 0, x_next[18])
+            x_next[19] = cs.if_else(cs.logic_or(x_next[19] <= self.ssyms.q_min[3], x_next[19] >= self.ssyms.q_max[3]), 0, x_next[19])
+        else:
+            x_next[0:4] = cs.fmin(cs.fmax(x_next[0:4], self.ssyms.q_min), self.ssyms.q_max)
 
+            x_next[4] = cs.if_else(cs.logic_or(x_next[4] <= self.ssyms.q_min[0], x_next[4] >= self.ssyms.q_max[0]), 0, x_next[4])
+            x_next[5] = cs.if_else(cs.logic_or(x_next[5] <= self.ssyms.q_min[1], x_next[5] >= self.ssyms.q_max[1]), 0, x_next[5])
+            x_next[6] = cs.if_else(cs.logic_or(x_next[6] <= self.ssyms.q_min[2], x_next[6] >= self.ssyms.q_max[2]), 0, x_next[6])
+            x_next[7] = cs.if_else(cs.logic_or(x_next[7] <= self.ssyms.q_min[3], x_next[7] >= self.ssyms.q_max[3]), 0, x_next[7])
         return x_next, states, u, parameters
