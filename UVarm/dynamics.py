@@ -300,7 +300,6 @@ class RobotDynamics():
                 a0 = i_X_p[i]@a[i-1]
             else:
                 i_X_0 = plucker.spatial_mtimes(i_X_p[i],self.T_Base)
-                print('floating_base found')
                 if coupled:
                     v0 = i_X_0@vel_base
                     a0 = i_X_0@ag
@@ -369,8 +368,8 @@ class RobotDynamics():
                 if floating_base_id!=None:
                     print('floating_base found')
                     if coupled:
-                        # F_base = floating_base_id + p_X_i_f@f[i] + p_X_i_f@fR[i]
-                        F_base = floating_base_id + p_X_i_f@f_withoutR[i]
+                        F_base = floating_base_id + p_X_i_f@f[i] + p_X_i_f@fR[i]
+                        # F_base = floating_base_id + p_X_i_f@f_withoutR[i]
                     else:
                         F_base = floating_base_id
                 else:
@@ -449,7 +448,6 @@ class RobotDynamics():
         elif C.size1() == self.ssyms.q_dot.size1():
             xd = self.ssyms.q_dot
             u = self.ssyms.m_u
-            print('parameters used')
             parameters = self.ssyms.forward_dynamics_parameters
             states = self.ssyms.m_states
             tau = self.ssyms.m_u

@@ -28,8 +28,8 @@ class construct_syms():
 
         self.v_base = SX.sym('v_base', uv_dof) # base velocity
         self.a_base = SX.sym('a_base', uv_dof) # base acceleration
-        self.baseT_xyz = SX.sym('c_xyz', 3) # manipulator-vehicle mount link xyz origin 
-        self.baseT_rpy = SX.sym('c_rpy', 3) # manipulator-vehicle mount link rpy origin
+        self.baseT_xyz = SX.sym('T_xyz', 3) # manipulator-vehicle mount link xyz origin 
+        self.baseT_rpy = SX.sym('T_rpy', 3) # manipulator-vehicle mount link rpy origin
         self.base_T = vertcat(self.baseT_rpy, self.baseT_xyz) # transform from origin to 1st child
         self.v_c = SX.sym('v_c', 6) # flow current velocity
         x = SX.sym('x')
@@ -85,10 +85,11 @@ class construct_syms():
         
         self.hydrodynamic_p = vertcat(*M_A_coef, *D_u_coeff, *D_uu_coeff, self.link_Volume, *self.cob, self.rho)
 
-        self.forward_dynamics_parameters = vertcat(self.rigid_body_p ,self.hydrodynamic_p, self.dt, self.base_T)
-        self.forward_dynamics_parameters_fb = vertcat(self.rigid_body_p, self.trivial_Ir, self.hydrodynamic_p, self.v_c, self.dt, self.base_T)
+        # self.forward_dynamics_parameters = vertcat(self.rigid_body_p ,self.hydrodynamic_p, self.dt, self.base_T)
+        # self.forward_dynamics_parameters_fb = vertcat(self.rigid_body_p, self.trivial_Ir, self.hydrodynamic_p, self.v_c, self.dt, self.base_T)
 
-
+        self.forward_dynamics_parameters = vertcat(self.rigid_body_p, self.dt)
+        self.forward_dynamics_parameters_fb = vertcat(self.rigid_body_p, self.base_T, self.dt)
 
     def __repr__(self) -> str:
         return "differentiable symbols"
