@@ -470,7 +470,7 @@ class RobotDynamics():
         sys['ode'] = rhs*self.ssyms.dt  # Time scaling
 
         intg = cs.integrator('intg', 'rk', sys, 0, 1, {
-                            'simplify': True, 'number_of_finite_elements': 15})
+                            'simplify': True, 'number_of_finite_elements': 30})
 
         res = intg(x0=states, u=u, p=cs.vertcat(parameters, self.ssyms.dt))  # evaluate with symbols
         x_next = res['xf']
