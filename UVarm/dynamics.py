@@ -375,7 +375,9 @@ class RobotDynamics():
                 else:
                     print('no floating_base found')
                     F_base = p_X_i_f@f[i] + p_X_i_f@fR[i]
-
+        
+        F_base = cs.substitute(F_base, self.ssyms.trivial_sim_p, cs.DM([0, 0, 0 , 0, 0, 0, 0]))
+        
         return [f, fR, tau_gear, tau_motor, Si, i_X_p, i_X_0s, v, a, Ic, F_base, fRIC]
 
     def parameter_pick(self, q_dot_i, forward_param_i, backward_param_i):
@@ -442,8 +444,7 @@ class RobotDynamics():
             xd = cs.vertcat(J_uv@self.ssyms.v_uv ,self.ssyms.q_dot)
             u = cs.vertcat(self.ssyms.uv_u, self.ssyms.m_u)
             base_T = self.ssyms.base_T
-            trivial_sim_p = self.ssyms.trivial_sim_p
-            parameters = cs.vertcat(self.ssyms.sim_p, base_T, trivial_sim_p)
+            parameters = cs.vertcat(self.ssyms.sim_p, base_T)
             states = self.ssyms.uvms_states
             ode_xdd = cs.inv(H)@(u - C)
 
@@ -455,7 +456,6 @@ class RobotDynamics():
             xd = self.ssyms.q_dot
             u = self.ssyms.m_u
             base_T = None
-            trivial_sim_p = None
             parameters = self.ssyms.sim_p
             states = self.ssyms.m_states
             ode_xdd = cs.inv(H)@(u - C)
@@ -487,4 +487,4 @@ class RobotDynamics():
             x_next[5] = cs.if_else(cs.logic_or(x_next[5] <= self.ssyms.q_min[1], x_next[5] >= self.ssyms.q_max[1]), 0, x_next[5])
             x_next[6] = cs.if_else(cs.logic_or(x_next[6] <= self.ssyms.q_min[2], x_next[6] >= self.ssyms.q_max[2]), 0, x_next[6])
             x_next[7] = cs.if_else(cs.logic_or(x_next[7] <= self.ssyms.q_min[3], x_next[7] >= self.ssyms.q_max[3]), 0, x_next[7])
-        return x_next, states, u, self.ssyms.dt, self.ssyms.q_min, self.ssyms.q_max, self.ssyms.sim_p, trivial_sim_p, base_T
+        return x_next, states, u, self.ssyms.dt, self.ssyms.q_min, self.ssyms.q_max, self.ssyms.sim_p, base_T

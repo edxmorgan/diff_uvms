@@ -96,4 +96,4 @@ class Params:
     delta_t = 0.05
     N = int(sim_n/delta_t) # number of control intervals
 
-    trivial_sim_p = [0, 0, 0 , 0, 0, 0, 0]
+    # trivial_sim_p = [0, 0, 0 , 0, 0, 0, 0]
