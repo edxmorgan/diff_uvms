@@ -7,8 +7,6 @@ class construct_syms():
         self.dt = SX.sym("dt")
         self.uv_u = SX.sym("uv_u", uv_dof)
         self.m_u = SX.sym("m_u", n_joints)
-        self.uvms_tau_rhs = vertcat(self.uv_u,self.m_u)
-        self.uvms_u = vertcat(self.uv_u[3:6], self.uv_u[0:3], self.m_u)
 
         self.q_max = SX.sym('q_max', n_joints)
         self.q_min = SX.sym('q_min', n_joints)
@@ -60,36 +58,38 @@ class construct_syms():
         
         self.uvms_states_ned = vertcat(self.n, self.nd)   
 
-        # hydrodynamics symbols
-        # xz, yz, xy planes of symmetry configuration of links
-        self.M_A_coef = SX.sym("M_A_coeff", 6,1, n_joints)
-        #linear damping components in body
-        self.D_u = SX.sym("D_u", 6,1, n_joints)
-        #nonlinear (quadratic) damping components in body
-        self.D_uu = SX.sym("D_uu", 6,1, n_joints)
-        self.link_Volume = SX.sym("LV", n_joints)
-        self.cob = SX.sym("cob", 3,1 ,n_joints)
-        self.rho = SX.sym("rho")
+        # # hydrodynamics symbols
+        # # xz, yz, xy planes of symmetry configuration of links
+        # self.M_A_coef = SX.sym("M_A_coeff", 6,1, n_joints)
+        # #linear damping components in body
+        # self.D_u = SX.sym("D_u", 6,1, n_joints)
+        # #nonlinear (quadratic) damping components in body
+        # self.D_uu = SX.sym("D_uu", 6,1, n_joints)
+        # self.link_Volume = SX.sym("LV", n_joints)
+        # self.cob = SX.sym("cob", 3,1 ,n_joints)
+        # self.rho = SX.sym("rho")
 
-        self.Ir = self.rotor_spatial_inertia
-        M_A_coef = self.M_A_coef
-        D_u_coeff = self.D_u
-        D_uu_coeff = self.D_uu
 
-        self.rigid_body_p = vertcat(self.G, self.Ir[3][17], self.Ir[3][16], self.Ir[3][15], self.Ir[3][14], self.Ir[3][13], self.Ir[3][12],
-                        self.Ir[2][11], self.Ir[2][10], self.Ir[2][9], self.Ir[2][8], self.Ir[2][7], self.Ir[2][6],
-                        self.Ir[1][10], self.Ir[1][8], self.Ir[1][7], self.Ir[1][6],
-                        self.Ir[0][14], self.fw_static, self.fw_viscous, self.bw_static, self.bw_viscous)
-        
-        self.trivial_Ir = vertcat(self.Ir[1][11], self.Ir[1][9], self.Ir[0][12], self.Ir[0][13], self.Ir[0][16], self.Ir[0][15], self.Ir[0][17])
-        
-        self.hydrodynamic_p = vertcat(*M_A_coef, *D_u_coeff, *D_uu_coeff, self.link_Volume, *self.cob, self.rho)
+        # M_A_coef = self.M_A_coef
+        # D_u_coeff = self.D_u
+        # D_uu_coeff = self.D_uu
+
+        # self.hydrodynamic_p = vertcat(*M_A_coef, *D_u_coeff, *D_uu_coeff, self.link_Volume, *self.cob, self.rho)
 
         # self.forward_dynamics_parameters = vertcat(self.rigid_body_p ,self.hydrodynamic_p, self.dt, self.base_T)
         # self.forward_dynamics_parameters_fb = vertcat(self.rigid_body_p, self.trivial_Ir, self.hydrodynamic_p, self.v_c, self.dt, self.base_T)
 
-        self.forward_dynamics_parameters = vertcat(self.rigid_body_p, self.dt)
-        self.forward_dynamics_parameters_fb = vertcat(self.rigid_body_p, self.base_T, self.dt)
+        self.Ir = self.rotor_spatial_inertia
+
+        self.m_rigid_body_p = vertcat(self.G, self.Ir[3][17], self.Ir[3][16], self.Ir[3][15], self.Ir[3][14], self.Ir[3][13], self.Ir[3][12],
+                        self.Ir[2][11], self.Ir[2][10], self.Ir[2][9], self.Ir[2][8], self.Ir[2][7], self.Ir[2][6],
+                        self.Ir[1][10], self.Ir[1][8], self.Ir[1][7], self.Ir[1][6],
+                        self.Ir[0][14], self.fw_static, self.fw_viscous, self.bw_static, self.bw_viscous)
+        
+        self.trivial_sim_p = vertcat(self.Ir[1][11], self.Ir[1][9], self.Ir[0][12], self.Ir[0][13], self.Ir[0][16], self.Ir[0][15], self.Ir[0][17])
+        
+  
+        self.sim_p = vertcat(self.m_rigid_body_p)
 
     def __repr__(self) -> str:
         return "differentiable symbols"

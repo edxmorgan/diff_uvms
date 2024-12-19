@@ -28,7 +28,13 @@ class Params:
     relative_urdf_path = f"/resources/urdf/alpha_5_robot.urdf"
 
     joint_min = np.array([0.0, 1.5, 0.05, 0.0])
-    joint_max = np.array([5.7, 3.4, 3.4, 5.7]) 
+    joint_max = np.array([5.7, 3.4, 3.4, 5.7])
+    
+    u_max = np.array([2.83664, 0.629139, 0.518764, 0.54]) 
+    u_min = np.array([-2.83664, -0.629139, -0.518764, -0.54])
+
+    Kp = cs.vertcat(15.0, 15.0, 20.0, 15.0)
+    Kd = cs.vertcat(1.1, 1.1, 1.1, 1.1)
 
     # rho = 1 #kg/L
 
@@ -82,14 +88,12 @@ class Params:
                             0.0, 0.0, 0.0, 0.0,
                             3.0, 1.8, 1.0, 1.15)
 
-    rigid_body_p_est = cs.vertcat(Gear_p, rigid_p0)
+    sim_p = cs.vertcat(Gear_p, rigid_p0)
 
-    base_T0 = [0, 0, 0 , 0, 0, 0]
+    base_T0 = [3.142, 0.000, 0.000, 0.140, 0.000, -0.120] #transformation of uv body frame to manipulator base
 
-    delta_t = 0.04
+    sim_n = 240 # time horizon
+    delta_t = 0.05
+    N = int(sim_n/delta_t) # number of control intervals
 
-    forward_params = cs.vertcat(rigid_body_p_est, delta_t)
-
-    # trivial_Ir0 = [0, 0, 0 , 0, 0, 0, 0]
-
-    # v_c0 = [0, 0, 0 , 0, 0, 0]
+    trivial_sim_p = [0, 0, 0 , 0, 0, 0, 0]

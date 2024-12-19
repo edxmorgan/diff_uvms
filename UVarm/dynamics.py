@@ -302,8 +302,8 @@ class RobotDynamics():
                 i_X_0 = plucker.spatial_mtimes(i_X_p[i],self.T_Base)
                 if coupled:
                     v0 = i_X_0@vel_base
-                    a0 = i_X_0@ag
-                    # a0 = i_X_0@acc_base
+                    a0 = i_X_0@ag # a0 = i_X_0@acc_base
+                    
                 else:
                     v0 = i_X_p[i]@cs.SX.zeros(6, 1) 
                     a0 = i_X_p[i]@ag
@@ -388,44 +388,44 @@ class RobotDynamics():
         _fb -= f_i_X_0@_external_f
         return _fb
 
-    def _apply_body_link_hydrodynamics(self, i, _fb, v, v_dot, Icom, Im, _i_X_0, gravity):
-        # i is the link index
-        # v is the link body velocity vector of size 6
-        # v_dot is the link body acceleration vector of size 6
+    # def _apply_body_link_hydrodynamics(self, i, _fb, v, v_dot, Icom, Im, _i_X_0, gravity):
+    #     # i is the link index
+    #     # v is the link body velocity vector of size 6
+    #     # v_dot is the link body acceleration vector of size 6
 
-        # for bodies operating at water depths below the wave-affected zone, the hydrodynamic
-        # coefficients will be independent of the wave excitation frequency.
-        # Consequently,  only one frequency is needed to obtain an estimate of the added mass matrix.
-        # In addition, there will be no potential damping. However,viscous damping Bv(w) will be present.
+    #     # for bodies operating at water depths below the wave-affected zone, the hydrodynamic
+    #     # coefficients will be independent of the wave excitation frequency.
+    #     # Consequently,  only one frequency is needed to obtain an estimate of the added mass matrix.
+    #     # In addition, there will be no potential damping. However,viscous damping Bv(w) will be present.
 
-        # hydrodynamic equation of motion of link about joint frame using the plücker basis
-        # HYDRODYNAMIC PARAMTERTIZATIONS
-        M_A_diag_coeff = self.ssyms.M_A_coef[i]  # 6 by 1
-        M_A = -cs.diag(cs.vertcat(M_A_diag_coeff))
-        C_A = plucker.hydrod_coriolis_lag_param(M_A, v[i])
+    #     # hydrodynamic equation of motion of link about joint frame using the plücker basis
+    #     # HYDRODYNAMIC PARAMTERTIZATIONS
+    #     M_A_diag_coeff = self.ssyms.M_A_coef[i]  # 6 by 1
+    #     M_A = -cs.diag(cs.vertcat(M_A_diag_coeff))
+    #     C_A = plucker.hydrod_coriolis_lag_param(M_A, v[i])
 
-        # Compute the total damping forces, including both linear and nonlinear components in body
-        linear_damping = -cs.diag(cs.vertcat(self.ssyms.D_u[i]))
-        nonlinear_damping = - cs.diag(cs.vertcat(self.ssyms.D_uu[i])*cs.fabs(v[i]))  # Quadratic
-        D_v = linear_damping + nonlinear_damping
+    #     # Compute the total damping forces, including both linear and nonlinear components in body
+    #     linear_damping = -cs.diag(cs.vertcat(self.ssyms.D_u[i]))
+    #     nonlinear_damping = - cs.diag(cs.vertcat(self.ssyms.D_uu[i])*cs.fabs(v[i]))  # Quadratic
+    #     D_v = linear_damping + nonlinear_damping
 
-        # restoring forces
-        fng = -cs.vertcat(0, 0, Im[i]*gravity)
-        fnb = self.ssyms.rho*gravity * \
-            cs.vertcat(0, 0, self.ssyms.link_Volume[i])
-        R_O, _, rx = plucker.extractEr(_i_X_0)
-        r_bb = cs.inv_skew(rx) + self.ssyms.cob[i]
-        r_bg = cs.inv_skew(rx) + Icom[i]
-        r_bb_x = cs.skew(r_bb)
-        r_bg_x = cs.skew(r_bg)
+    #     # restoring forces
+    #     fng = -cs.vertcat(0, 0, Im[i]*gravity)
+    #     fnb = self.ssyms.rho*gravity * \
+    #         cs.vertcat(0, 0, self.ssyms.link_Volume[i])
+    #     R_O, _, rx = plucker.extractEr(_i_X_0)
+    #     r_bb = cs.inv_skew(rx) + self.ssyms.cob[i]
+    #     r_bg = cs.inv_skew(rx) + Icom[i]
+    #     r_bb_x = cs.skew(r_bb)
+    #     r_bg_x = cs.skew(r_bg)
 
-        g_n = cs.vertcat((r_bg_x@fng + r_bb_x@fnb), (fng + fnb))
+    #     g_n = cs.vertcat((r_bg_x@fng + r_bb_x@fnb), (fng + fnb))
 
-        f_i_X_0 = _i_X_0.T
-        # apply moments and force due to hydrodynamics to rigid body link
-        spatial_restoring_force = f_i_X_0@g_n
-        _fb -= M_A@v_dot[i] + C_A@v[i] + D_v@v[i] + spatial_restoring_force
-        return _fb
+    #     f_i_X_0 = _i_X_0.T
+    #     # apply moments and force due to hydrodynamics to rigid body link
+    #     spatial_restoring_force = f_i_X_0@g_n
+    #     _fb -= M_A@v_dot[i] + C_A@v[i] + D_v@v[i] + spatial_restoring_force
+    #     return _fb
 
     def forward_dynamics(self, gravity=9.81, floating_base_id=None, floating_base_bias_f=None, J_uv=None, coupled=True):
         # uvms bias force and Inertia
@@ -438,22 +438,27 @@ class RobotDynamics():
         if C.size1() > self.ssyms.q_dot.size1():
             if J_uv == None:
                 raise Exception("provide uv position transformation matrix (NED)")
-            
+                
             xd = cs.vertcat(J_uv@self.ssyms.v_uv ,self.ssyms.q_dot)
-            u = self.ssyms.uvms_u
-            parameters = self.ssyms.forward_dynamics_parameters_fb
+            u = cs.vertcat(self.ssyms.uv_u, self.ssyms.m_u)
+            base_T = self.ssyms.base_T
+            trivial_sim_p = self.ssyms.trivial_sim_p
+            parameters = cs.vertcat(self.ssyms.sim_p, base_T, trivial_sim_p)
             states = self.ssyms.uvms_states
-            tau = self.ssyms.uvms_tau_rhs
+            ode_xdd = cs.inv(H)@(u - C)
+
+            # restructured orientation, position to position , orientation of the base vehicle
+            ode_xdd = cs.vertcat(ode_xdd[3:6],ode_xdd[0:3],ode_xdd[6:])
+            u = cs.vertcat(u[3:6],u[0:3],u[6:])
 
         elif C.size1() == self.ssyms.q_dot.size1():
             xd = self.ssyms.q_dot
             u = self.ssyms.m_u
-            parameters = self.ssyms.forward_dynamics_parameters
+            base_T = None
+            trivial_sim_p = None
+            parameters = self.ssyms.sim_p
             states = self.ssyms.m_states
-            tau = self.ssyms.m_u
-
-        ode_xdd = cs.inv(H)@(tau - C)
-        ode_xdd = cs.vertcat(ode_xdd[3:6],ode_xdd[0:3],ode_xdd[6:]) if C.size1() > self.ssyms.q_dot.size1() else ode_xdd
+            ode_xdd = cs.inv(H)@(u - C)
 
         rhs = cs.vertcat(xd, ode_xdd)  # the complete ODE vector
 
@@ -461,19 +466,16 @@ class RobotDynamics():
         sys = {}
         sys['x'] = states
         sys['u'] = u
-        sys['p'] = parameters
+        sys['p'] = cs.vertcat(parameters, self.ssyms.dt)
         sys['ode'] = rhs*self.ssyms.dt  # Time scaling
 
         intg = cs.integrator('intg', 'rk', sys, 0, 1, {
                             'simplify': True, 'number_of_finite_elements': 15})
 
-        res = intg(x0=states, u=u, p=parameters)  # evaluate with symbols
+        res = intg(x0=states, u=u, p=cs.vertcat(parameters, self.ssyms.dt))  # evaluate with symbols
         x_next = res['xf']
 
         if C.size1() > self.ssyms.q_dot.size1():
-            x_next[12] = cs.if_else(x_next[2] < 0, 0,  x_next[12]) # if vehicle on surface, no more up motion
-            x_next[2] = cs.if_else(x_next[2] < 0, 0,  x_next[2]) # if vehicle on surface, keep on surface and not go up
-
             x_next[6:10] = cs.fmin(cs.fmax(x_next[6:10], self.ssyms.q_min), self.ssyms.q_max)
             x_next[16] = cs.if_else(cs.logic_or(x_next[16] <= self.ssyms.q_min[0], x_next[16] >= self.ssyms.q_max[0]), 0, x_next[16])
             x_next[17] = cs.if_else(cs.logic_or(x_next[17] <= self.ssyms.q_min[1], x_next[17] >= self.ssyms.q_max[1]), 0, x_next[17])
@@ -481,9 +483,8 @@ class RobotDynamics():
             x_next[19] = cs.if_else(cs.logic_or(x_next[19] <= self.ssyms.q_min[3], x_next[19] >= self.ssyms.q_max[3]), 0, x_next[19])
         else:
             x_next[0:4] = cs.fmin(cs.fmax(x_next[0:4], self.ssyms.q_min), self.ssyms.q_max)
-
             x_next[4] = cs.if_else(cs.logic_or(x_next[4] <= self.ssyms.q_min[0], x_next[4] >= self.ssyms.q_max[0]), 0, x_next[4])
             x_next[5] = cs.if_else(cs.logic_or(x_next[5] <= self.ssyms.q_min[1], x_next[5] >= self.ssyms.q_max[1]), 0, x_next[5])
             x_next[6] = cs.if_else(cs.logic_or(x_next[6] <= self.ssyms.q_min[2], x_next[6] >= self.ssyms.q_max[2]), 0, x_next[6])
             x_next[7] = cs.if_else(cs.logic_or(x_next[7] <= self.ssyms.q_min[3], x_next[7] >= self.ssyms.q_max[3]), 0, x_next[7])
-        return x_next, states, u, parameters
+        return x_next, states, u, self.ssyms.dt, self.ssyms.q_min, self.ssyms.q_max, self.ssyms.sim_p, trivial_sim_p, base_T
