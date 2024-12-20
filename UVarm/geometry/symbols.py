@@ -81,12 +81,21 @@ class construct_syms():
 
         self.Ir = self.rotor_spatial_inertia
 
-        self.m_rigid_body_p = vertcat(self.G, self.Ir[3][17], self.Ir[3][16], self.Ir[3][15], self.Ir[3][14], self.Ir[3][13], self.Ir[3][12],
-                        self.Ir[2][11], self.Ir[2][10], self.Ir[2][9], self.Ir[2][8], self.Ir[2][7], self.Ir[2][6],
-                        self.Ir[1][10], self.Ir[1][8], self.Ir[1][7], self.Ir[1][6],
-                        self.Ir[0][14], self.fw_static, self.fw_viscous, self.bw_static, self.bw_viscous)
+        self.m_rigid_body_p = vertcat(self.G, 
+                                      self.Ir[3][14],
+                                      self.Ir[2][7], 
+                                      self.Ir[1][7],
+                                      self.Ir[0][14], 
+                                      self.fw_static, self.fw_viscous, self.bw_static, self.bw_viscous)
         
-        self.trivial_sim_p = vertcat(self.Ir[1][11], self.Ir[1][9], self.Ir[0][12], self.Ir[0][13], self.Ir[0][16], self.Ir[0][15], self.Ir[0][17])
+        self.trivial_sim_p = vertcat(self.Ir[1][11], self.Ir[1][9], self.Ir[0][12],
+                                      self.Ir[0][13], self.Ir[0][16], self.Ir[0][15], 
+                                      self.Ir[0][17],
+                                     self.Ir[3][17], self.Ir[3][16], self.Ir[3][15],  
+                                     self.Ir[3][13], self.Ir[3][12], self.Ir[2][11],
+                                       self.Ir[2][10], self.Ir[2][9], self.Ir[2][8],
+                                       self.Ir[2][6], self.Ir[1][10], self.Ir[1][8], 
+                                       self.Ir[1][6])
         
   
         self.sim_p = vertcat(self.m_rigid_body_p)

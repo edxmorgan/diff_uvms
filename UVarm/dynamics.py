@@ -376,7 +376,8 @@ class RobotDynamics():
                     print('no floating_base found')
                     F_base = p_X_i_f@f[i] + p_X_i_f@fR[i]
         
-        F_base = cs.substitute(F_base, self.ssyms.trivial_sim_p, cs.DM([0, 0, 0 , 0, 0, 0, 0]))
+        F_base = cs.substitute(F_base, self.ssyms.trivial_sim_p, cs.DM([0]*self.ssyms.trivial_sim_p.size1()))
+        tau_motor = cs.substitute(tau_motor, self.ssyms.trivial_sim_p, cs.DM([0]*self.ssyms.trivial_sim_p.size1()))
         
         return [f, fR, tau_gear, tau_motor, Si, i_X_p, i_X_0s, v, a, Ic, F_base, fRIC]
 

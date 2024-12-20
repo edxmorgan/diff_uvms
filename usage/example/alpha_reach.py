@@ -79,10 +79,7 @@ class Params:
 
     # reducing model parameters by assuming non rotating axis are inertialess or inactivity
     Gear_p = cs.vertcat(2253.54, 2253.54, 2253.54, 340.4)
-    rigid_p0 = cs.vertcat(0.0, 0.0, 0.0, 1e-05, 0.0, 0.0,
-                            0.0, 0.0, 0.0, 0.0, 1e-05, 0.0,
-                            0.0, 0.0, 1e-05, 0.0,
-                            1e-05, 
+    rigid_p0 = cs.vertcat( 1e-05, 1e-05, 1e-05, 1e-05, 
                             0.0, 0.0, 0.0, 0.0, 
                             3.0, 2.3, 2.2, 0.3, 
                             0.0, 0.0, 0.0, 0.0,
