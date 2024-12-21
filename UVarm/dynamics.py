@@ -338,6 +338,7 @@ class RobotDynamics():
 
             vRi_xf = plucker.force_cross_product(vRJ)
             _fR = Ir[i]@aR[i] + vRi_xf@Ir[i]@vRJ  # rotor i forces
+
             fR.append(_fR)
             
         # BACKWARD ITERATION
@@ -434,21 +435,21 @@ class RobotDynamics():
         # uvms bias force and Inertia
         C = self.get_bias_force(gravity, floating_base_bias_f, coupled)
         H = self.get_inertia_matrix(gravity, floating_base_id, floating_base_bias_f, coupled)
-
+        
         if C.size1() != H.size1() and H.size1() != H.size2():
             raise Exception("C and H matrices shape mismatch. Possibly not passing necessary floating base arguments")
 
         if C.size1() > self.ssyms.q_dot.size1():
             if J_uv == None:
                 raise Exception("provide uv position transformation matrix (NED)")
-                
+    
             xd = cs.vertcat(J_uv@self.ssyms.v_uv ,self.ssyms.q_dot)
             u = cs.vertcat(self.ssyms.uv_u, self.ssyms.m_u)
             base_T = self.ssyms.base_T
             parameters = cs.vertcat(self.ssyms.sim_p, base_T)
             states = self.ssyms.uvms_states
-            ode_xdd = cs.inv(H)@(u - C)
-
+            ode_xdd = cs.solve(H, u - C)
+            
             # restructured orientation, position to position , orientation of the base vehicle
             ode_xdd = cs.vertcat(ode_xdd[3:6],ode_xdd[0:3],ode_xdd[6:])
             u = cs.vertcat(u[3:6],u[0:3],u[6:])
@@ -459,7 +460,7 @@ class RobotDynamics():
             base_T = None
             parameters = self.ssyms.sim_p
             states = self.ssyms.m_states
-            ode_xdd = cs.inv(H)@(u - C)
+            ode_xdd = cs.solve(H, u - C)
 
         rhs = cs.vertcat(xd, ode_xdd)  # the complete ODE vector
 
@@ -472,20 +473,32 @@ class RobotDynamics():
 
         intg = cs.integrator('intg', 'rk', sys, 0, 1, {
                             'simplify': True, 'number_of_finite_elements': 30})
+        
+        u_checks = copy.deepcopy(u)
+        states_checks = copy.deepcopy(states)
 
-        res = intg(x0=states, u=u, p=cs.vertcat(parameters, self.ssyms.dt))  # evaluate with symbols
+        if u.size1() == self.ssyms.q_min.size1():
+            for j in range(self.ssyms.n_joints):
+                u_checks[j] = cs.if_else(cs.logic_and(states[j] <= self.ssyms.q_min[j], u[j]<0 ), 0, u[j])
+                u_checks[j] = cs.if_else(cs.logic_and(states[j] >= self.ssyms.q_max[j], u[j]>0 ), 0, u[j])
+
+                states_checks[j+4] = cs.if_else(cs.logic_and(states[j] <= self.ssyms.q_min[j], states[j+4]<0 ), 0, states[j+4])
+                states_checks[j+4] = cs.if_else(cs.logic_and(states[j] >= self.ssyms.q_max[j], states[j+4]>0 ), 0, states[j+4])
+
+            # states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.ssyms.u_min), self.ssyms.u_max)
+            states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.ssyms.q_min), self.ssyms.q_max)
+        else:
+            for j in range(self.ssyms.n_joints):
+                u_checks[6+j] = cs.if_else(cs.logic_and(states[6+j] <= self.ssyms.q_min[j], u[6+j]<0 ), 0, u[6+j])
+                u_checks[6+j] = cs.if_else(cs.logic_and(states[6+j] >= self.ssyms.q_max[j], u[6+j]>0 ), 0, u[6+j])
+
+                states_checks[j+16] = cs.if_else(cs.logic_and(states[6+j] <= self.ssyms.q_min[j], states[j+16]<0), 0, states[j+16])
+                states_checks[j+16] = cs.if_else(cs.logic_and(states[6+j] >= self.ssyms.q_max[j], states[j+16]>0), 0, states[j+16])
+
+            # states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.ssyms.u_min), self.ssyms.u_max)
+            states_checks[6:10] = cs.fmin(cs.fmax(states[6:10], self.ssyms.q_min), self.ssyms.q_max)
+
+        res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.ssyms.dt))  # evaluate with symbols
         x_next = res['xf']
 
-        if C.size1() > self.ssyms.q_dot.size1():
-            x_next[6:10] = cs.fmin(cs.fmax(x_next[6:10], self.ssyms.q_min), self.ssyms.q_max)
-            x_next[16] = cs.if_else(cs.logic_or(x_next[16] <= self.ssyms.q_min[0], x_next[16] >= self.ssyms.q_max[0]), 0, x_next[16])
-            x_next[17] = cs.if_else(cs.logic_or(x_next[17] <= self.ssyms.q_min[1], x_next[17] >= self.ssyms.q_max[1]), 0, x_next[17])
-            x_next[18] = cs.if_else(cs.logic_or(x_next[18] <= self.ssyms.q_min[2], x_next[18] >= self.ssyms.q_max[2]), 0, x_next[18])
-            x_next[19] = cs.if_else(cs.logic_or(x_next[19] <= self.ssyms.q_min[3], x_next[19] >= self.ssyms.q_max[3]), 0, x_next[19])
-        else:
-            x_next[0:4] = cs.fmin(cs.fmax(x_next[0:4], self.ssyms.q_min), self.ssyms.q_max)
-            x_next[4] = cs.if_else(cs.logic_or(x_next[4] <= self.ssyms.q_min[0], x_next[4] >= self.ssyms.q_max[0]), 0, x_next[4])
-            x_next[5] = cs.if_else(cs.logic_or(x_next[5] <= self.ssyms.q_min[1], x_next[5] >= self.ssyms.q_max[1]), 0, x_next[5])
-            x_next[6] = cs.if_else(cs.logic_or(x_next[6] <= self.ssyms.q_min[2], x_next[6] >= self.ssyms.q_max[2]), 0, x_next[6])
-            x_next[7] = cs.if_else(cs.logic_or(x_next[7] <= self.ssyms.q_min[3], x_next[7] >= self.ssyms.q_max[3]), 0, x_next[7])
         return x_next, states, u, self.ssyms.dt, self.ssyms.q_min, self.ssyms.q_max, self.ssyms.sim_p, base_T
