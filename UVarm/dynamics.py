@@ -479,21 +479,46 @@ class RobotDynamics():
 
         if u.size1() == self.ssyms.q_min.size1():
             for j in range(self.ssyms.n_joints):
-                u_checks[j] = cs.if_else(cs.logic_and(states[j] <= self.ssyms.q_min[j], u[j]<0 ), 0, u[j])
-                u_checks[j] = cs.if_else(cs.logic_and(states[j] >= self.ssyms.q_max[j], u[j]>0 ), 0, u[j])
+                u_checks[j] = cs.if_else(
+                    cs.logic_or(
+                        # If states[j] is already too low AND commanded force is negative ...
+                        cs.logic_and(states[j] <= self.ssyms.q_min[j], u[j]<0 ),
+                        # ... OR if states[j] is already too high AND commanded force is positive
+                        cs.logic_and(states[j] >= self.ssyms.q_max[j], u[j]>0 )
+                        ),
+                        0, # clamp to zero if either of the above conditions hold
+                        u[j] # otherwise leave as is
+                        )
 
-                states_checks[j+4] = cs.if_else(cs.logic_and(states[j] <= self.ssyms.q_min[j], states[j+4]<0 ), 0, states[j+4])
-                states_checks[j+4] = cs.if_else(cs.logic_and(states[j] >= self.ssyms.q_max[j], states[j+4]>0 ), 0, states[j+4])
-
+                states_checks[j+4] = cs.if_else(
+                    cs.logic_or(
+                        cs.logic_and(states[j] <= self.ssyms.q_min[j], states[j+4]<0), 
+                        cs.logic_and(states[j] >= self.ssyms.q_max[j], states[j+4]>0)
+                        ),
+                        0,
+                        states[j+4]
+                        )
             # states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.ssyms.u_min), self.ssyms.u_max)
             states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.ssyms.q_min), self.ssyms.q_max)
         else:
             for j in range(self.ssyms.n_joints):
-                u_checks[6+j] = cs.if_else(cs.logic_and(states[6+j] <= self.ssyms.q_min[j], u[6+j]<0 ), 0, u[6+j])
-                u_checks[6+j] = cs.if_else(cs.logic_and(states[6+j] >= self.ssyms.q_max[j], u[6+j]>0 ), 0, u[6+j])
+                u_checks[6+j] = cs.if_else(
+                    cs.logic_or(
+                        cs.logic_and(states[6+j] <= self.ssyms.q_min[j], u[6+j]<0 ),
+                        cs.logic_and(states[6+j] >= self.ssyms.q_max[j], u[6+j]>0 )
+                        ),
+                        0,
+                        u[6+j]
+                        )
 
-                states_checks[j+16] = cs.if_else(cs.logic_and(states[6+j] <= self.ssyms.q_min[j], states[j+16]<0), 0, states[j+16])
-                states_checks[j+16] = cs.if_else(cs.logic_and(states[6+j] >= self.ssyms.q_max[j], states[j+16]>0), 0, states[j+16])
+                states_checks[j+16] = cs.if_else(
+                    cs.logic_or(
+                        cs.logic_and(states[6+j] <= self.ssyms.q_min[j], states[j+16]<0),
+                        cs.logic_and(states[6+j] >= self.ssyms.q_max[j], states[j+16]>0)
+                        ),
+                        0, 
+                        states[j+16]
+                        )
 
             # states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.ssyms.u_min), self.ssyms.u_max)
             states_checks[6:10] = cs.fmin(cs.fmax(states[6:10], self.ssyms.q_min), self.ssyms.q_max)
@@ -501,4 +526,4 @@ class RobotDynamics():
         res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.ssyms.dt))  # evaluate with symbols
         x_next = res['xf']
 
-        return x_next, states, u, self.ssyms.dt, self.ssyms.q_min, self.ssyms.q_max, self.ssyms.sim_p, base_T
+        return x_next, states, u, self.ssyms.dt, self.ssyms.q_min, self.ssyms.q_max, self.ssyms.sim_p, base_T, states_checks, u_checks
