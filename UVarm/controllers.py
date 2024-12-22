@@ -15,6 +15,16 @@ class RobotControllers():
         self.u_min = cs.SX.sym('u_min', self.arm_ssyms.n_joints)
 
     def pid(self):
+        # ne = self.fb_ssyms.n - nd
+
+        # i_buffer = sum_e_buffer + ne*dt
+
+        # pid = -diag(Kp)@ne - diag(Kd)@(self.J_@x_nb) - diag(Ki)@i_buffer
+
+        # pid_controller = self.gn + self.J_.T@pid
+
+        # return pid_controller, i_buffer
+    
         # Error between reference and actual position
         err = self.qref - self.arm_ssyms.q
 

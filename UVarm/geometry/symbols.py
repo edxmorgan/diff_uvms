@@ -3,7 +3,6 @@ from casadi import SX,  vertcat
 class construct_manipulator_syms():
     def __init__(self, n_joints):
         self.n_joints = n_joints
-        self.dt = SX.sym("dt")
         self.m_u = SX.sym("m_u", n_joints)
 
         self.q_max = SX.sym('q_max', n_joints)
@@ -159,12 +158,20 @@ class construct_vehicle_syms():
         self.sim_p = vertcat(m, W, B, r_g, r_b, I_o,
                                 decoupled_added_m, coupled_added_m,
                                 linear_dc, quadratic_dc, v_c)
+        
+        self.Kp = SX.sym('Kp',6,1)
+        self.Kd = SX.sym('Kd',6,1)
+        self.Ki = SX.sym('Ki',6,1)
+        self.sum_e_buffer = SX.sym("sum_e_buffer", 6,1)
+        self.nd = SX.sym('nd', 6,1)
+        self.vb_d = SX.sym('vb_d', 6,1)
+        # xS0_prev = SX.sym('xS0_prev', 12,1)
 
 
 class construct_uvms_syms():
     def __init__(self, n_joints):
         self.n_joints = n_joints
-
+        self.dt = SX.sym("dt")
         self.arm_ssyms = construct_manipulator_syms(self.n_joints)
         self.fb_ssyms = construct_vehicle_syms() #floating base symbols
 
