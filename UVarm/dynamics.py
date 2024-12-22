@@ -523,7 +523,7 @@ class RobotDynamics():
                         states[j+16]
                         )
 
-            # states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.ssyms.u_min), self.ssyms.u_max)
+            # u_checks = cs.fmin(cs.fmax(u, self.ssyms.u_min), self.ssyms.u_max)
             states_checks[6:10] = cs.fmin(cs.fmax(states[6:10], self.ssyms.q_min), self.ssyms.q_max)
 
         res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.ssyms.dt))  # evaluate with symbols
