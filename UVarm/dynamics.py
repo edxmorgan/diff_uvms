@@ -18,20 +18,20 @@ class RobotDynamics():
 
         self.sys_syms = UVMS_syms( self.n_joints) #whole body symbols
 
-        self.ssyms = self.sys_syms.ssyms # manipulator symbols
+        self.arm_ssyms = self.sys_syms.arm_ssyms # manipulator symbols
         self.fb_ssyms = self.sys_syms.fb_ssyms #floating base symbols
 
-        print(f"number of joints = {self.ssyms.n_joints}")
+        print(f"number of joints = {self.arm_ssyms.n_joints}")
         self.robot_desc = copy.deepcopy(self.parser.robot_desc_backup)
         self.T_Base = plucker.XT(self.fb_ssyms.baseT_xyz, self.fb_ssyms.baseT_rpy)
 
     def forward_kinematics(self, floating_base = False):
-        q = self.ssyms.q
+        q = self.arm_ssyms.q
         i_X_p, tip_offset, Si, Ic, Icom, Im = self._model_calculation(q)
         T_Base = plucker.XT(self.fb_ssyms.baseT_xyz, self.fb_ssyms.baseT_rpy)
 
         i_X_0s = []
-        for i in range(0, self.ssyms.n_joints):
+        for i in range(0, self.arm_ssyms.n_joints):
             if i != 0:
                 i_X_0 = plucker.spatial_mtimes(i_X_p[i],i_X_0)
             else:
@@ -50,11 +50,11 @@ class RobotDynamics():
 
     def get_inverse_dynamics_rnea(self, gravity=9.81, floating_base_id=None, coupled=True):
         """Returns the inverse dynamics as a casadi expression."""
-        q = self.ssyms.q
-        q_dot = self.ssyms.q_dot
-        q_ddot = self.ssyms.q_ddot
-        fw_static, fw_viscous = self.ssyms.fw_static, self.ssyms.fw_viscous
-        bw_static, bw_viscous = self.ssyms.bw_static, self.ssyms.bw_viscous
+        q = self.arm_ssyms.q
+        q_dot = self.arm_ssyms.q_dot
+        q_ddot = self.arm_ssyms.q_ddot
+        fw_static, fw_viscous = self.arm_ssyms.fw_static, self.arm_ssyms.fw_viscous
+        bw_static, bw_viscous = self.arm_ssyms.bw_static, self.arm_ssyms.bw_viscous
         f_ext=None
         v_base = self.fb_ssyms.v_base 
         a_base = self.fb_ssyms.a_base
@@ -78,11 +78,11 @@ class RobotDynamics():
 
     def get_bias_force(self, gravity=9.81, floating_base_bias_f=None, coupled=True):
         """Returns the Coriolis vector as a casadi expression."""
-        q = self.ssyms.q
-        q_dot = self.ssyms.q_dot
+        q = self.arm_ssyms.q
+        q_dot = self.arm_ssyms.q_dot
         q_ddot = [0]*self.n_joints
-        fw_static, fw_viscous = self.ssyms.fw_static, self.ssyms.fw_viscous
-        bw_static, bw_viscous = self.ssyms.bw_static, self.ssyms.bw_viscous
+        fw_static, fw_viscous = self.arm_ssyms.fw_static, self.arm_ssyms.fw_viscous
+        bw_static, bw_viscous = self.arm_ssyms.bw_static, self.arm_ssyms.bw_viscous
         gravity = gravity
         f_ext=None
         v_base = self.fb_ssyms.v_base 
@@ -106,7 +106,7 @@ class RobotDynamics():
 
     def get_inertia_matrix(self, gravity=9.81, floating_base_id=None, floating_base_bias_f=None, coupled=True):
         ID_exp = self.get_inverse_dynamics_rnea(gravity=gravity, floating_base_id=floating_base_id, coupled=coupled)
-        ddX = self.ssyms.q_ddot
+        ddX = self.arm_ssyms.q_ddot
 
         if floating_base_id!=None and floating_base_bias_f==None:
             raise Exception("floating_base_bias_force required for floating base operations")
@@ -278,10 +278,10 @@ class RobotDynamics():
 
         i_X_p, tip_offset, Si, Ic, Icom, Im = self._model_calculation(q)
 
-        n_joints = self.ssyms.n_joints
+        n_joints = self.arm_ssyms.n_joints
 
-        G = self.ssyms.G
-        Ir = self.ssyms.rotor_spatial_inertia
+        G = self.arm_ssyms.G
+        Ir = self.arm_ssyms.rotor_spatial_inertia
   
         i_X_0s = []
         v = []
@@ -384,8 +384,8 @@ class RobotDynamics():
                     print('no floating_base found')
                     F_base = p_X_i_f@f[i] + p_X_i_f@fR[i]
         
-        F_base = cs.substitute(F_base, self.ssyms.trivial_sim_p, cs.DM([0]*self.ssyms.trivial_sim_p.size1()))
-        tau_motor = cs.substitute(tau_motor, self.ssyms.trivial_sim_p, cs.DM([0]*self.ssyms.trivial_sim_p.size1()))
+        F_base = cs.substitute(F_base, self.arm_ssyms.trivial_sim_p, cs.DM([0]*self.arm_ssyms.trivial_sim_p.size1()))
+        tau_motor = cs.substitute(tau_motor, self.arm_ssyms.trivial_sim_p, cs.DM([0]*self.arm_ssyms.trivial_sim_p.size1()))
         
         return [f, fR, tau_gear, tau_motor, Si, i_X_p, i_X_0s, v, a, Ic, F_base, fRIC]
 
@@ -411,21 +411,21 @@ class RobotDynamics():
 
     #     # hydrodynamic equation of motion of link about joint frame using the plücker basis
     #     # HYDRODYNAMIC PARAMTERTIZATIONS
-    #     M_A_diag_coeff = self.ssyms.M_A_coef[i]  # 6 by 1
+    #     M_A_diag_coeff = self.arm_ssyms.M_A_coef[i]  # 6 by 1
     #     M_A = -cs.diag(cs.vertcat(M_A_diag_coeff))
     #     C_A = plucker.hydrod_coriolis_lag_param(M_A, v[i])
 
     #     # Compute the total damping forces, including both linear and nonlinear components in body
-    #     linear_damping = -cs.diag(cs.vertcat(self.ssyms.D_u[i]))
-    #     nonlinear_damping = - cs.diag(cs.vertcat(self.ssyms.D_uu[i])*cs.fabs(v[i]))  # Quadratic
+    #     linear_damping = -cs.diag(cs.vertcat(self.arm_ssyms.D_u[i]))
+    #     nonlinear_damping = - cs.diag(cs.vertcat(self.arm_ssyms.D_uu[i])*cs.fabs(v[i]))  # Quadratic
     #     D_v = linear_damping + nonlinear_damping
 
     #     # restoring forces
     #     fng = -cs.vertcat(0, 0, Im[i]*gravity)
-    #     fnb = self.ssyms.rho*gravity * \
-    #         cs.vertcat(0, 0, self.ssyms.link_Volume[i])
+    #     fnb = self.arm_ssyms.rho*gravity * \
+    #         cs.vertcat(0, 0, self.arm_ssyms.link_Volume[i])
     #     R_O, _, rx = plucker.extractEr(_i_X_0)
-    #     r_bb = cs.inv_skew(rx) + self.ssyms.cob[i]
+    #     r_bb = cs.inv_skew(rx) + self.arm_ssyms.cob[i]
     #     r_bg = cs.inv_skew(rx) + Icom[i]
     #     r_bb_x = cs.skew(r_bb)
     #     r_bg_x = cs.skew(r_bg)
@@ -446,23 +446,23 @@ class RobotDynamics():
         if C.size1() != H.size1() and H.size1() != H.size2():
             raise Exception("C and H matrices shape mismatch. Possibly not passing necessary floating base arguments")
 
-        if C.size1() > self.ssyms.q_dot.size1():
+        if C.size1() > self.arm_ssyms.q_dot.size1():
             if J_uv == None:
                 raise Exception("provide uv position transformation matrix (NED)")
     
-            xd = cs.vertcat(J_uv@self.fb_ssyms.v_uv ,self.ssyms.q_dot)
-            u = cs.vertcat(self.fb_ssyms.uv_u, self.ssyms.m_u)
+            xd = cs.vertcat(J_uv@self.fb_ssyms.v_uv ,self.arm_ssyms.q_dot)
+            u = cs.vertcat(self.fb_ssyms.uv_u, self.arm_ssyms.m_u)
             base_T = self.fb_ssyms.base_T
-            parameters = cs.vertcat(self.ssyms.sim_p,self.fb_ssyms.sim_p, base_T)
+            parameters = cs.vertcat(self.arm_ssyms.sim_p,self.fb_ssyms.sim_p, base_T)
             states = self.sys_syms.uvms_states
             ode_xdd = cs.solve(H, u - C)
 
-        elif C.size1() == self.ssyms.q_dot.size1():
-            xd = self.ssyms.q_dot
-            u = self.ssyms.m_u
+        elif C.size1() == self.arm_ssyms.q_dot.size1():
+            xd = self.arm_ssyms.q_dot
+            u = self.arm_ssyms.m_u
             base_T = None
-            parameters = self.ssyms.sim_p
-            states = self.ssyms.m_states
+            parameters = self.arm_ssyms.sim_p
+            states = self.arm_ssyms.m_states
             ode_xdd = cs.solve(H, u - C)
 
         rhs = cs.vertcat(xd, ode_xdd)  # the complete ODE vector
@@ -471,8 +471,8 @@ class RobotDynamics():
         sys = {}
         sys['x'] = states
         sys['u'] = u
-        sys['p'] = cs.vertcat(parameters, self.ssyms.dt)
-        sys['ode'] = rhs*self.ssyms.dt  # Time scaling
+        sys['p'] = cs.vertcat(parameters, self.arm_ssyms.dt)
+        sys['ode'] = rhs*self.arm_ssyms.dt  # Time scaling
 
         intg = cs.integrator('intg', 'rk', sys, 0, 1, {
                             'simplify': True, 'number_of_finite_elements': 30})
@@ -480,14 +480,14 @@ class RobotDynamics():
         u_checks = copy.deepcopy(u)
         states_checks = copy.deepcopy(states)
 
-        if u.size1() == self.ssyms.q_min.size1():
-            for j in range(self.ssyms.n_joints):
+        if u.size1() == self.arm_ssyms.q_min.size1():
+            for j in range(self.arm_ssyms.n_joints):
                 u_checks[j] = cs.if_else(
                     cs.logic_or(
                         # If states[j] is already too low AND commanded force is negative ...
-                        cs.logic_and(states[j] <= self.ssyms.q_min[j], u[j]<0 ),
+                        cs.logic_and(states[j] <= self.arm_ssyms.q_min[j], u[j]<0 ),
                         # ... OR if states[j] is already too high AND commanded force is positive
-                        cs.logic_and(states[j] >= self.ssyms.q_max[j], u[j]>0 )
+                        cs.logic_and(states[j] >= self.arm_ssyms.q_max[j], u[j]>0 )
                         ),
                         0, # clamp to zero if either of the above conditions hold
                         u[j] # otherwise leave as is
@@ -495,20 +495,20 @@ class RobotDynamics():
 
                 states_checks[j+4] = cs.if_else(
                     cs.logic_or(
-                        cs.logic_and(states[j] <= self.ssyms.q_min[j], states[j+4]<0), 
-                        cs.logic_and(states[j] >= self.ssyms.q_max[j], states[j+4]>0)
+                        cs.logic_and(states[j] <= self.arm_ssyms.q_min[j], states[j+4]<0), 
+                        cs.logic_and(states[j] >= self.arm_ssyms.q_max[j], states[j+4]>0)
                         ),
                         0,
                         states[j+4]
                         )
-            # states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.ssyms.u_min), self.ssyms.u_max)
-            states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.ssyms.q_min), self.ssyms.q_max)
+            # states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.arm_ssyms.u_min), self.arm_ssyms.u_max)
+            states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.arm_ssyms.q_min), self.arm_ssyms.q_max)
         else:
-            for j in range(self.ssyms.n_joints):
+            for j in range(self.arm_ssyms.n_joints):
                 u_checks[6+j] = cs.if_else(
                     cs.logic_or(
-                        cs.logic_and(states[6+j] <= self.ssyms.q_min[j], u[6+j]<0 ),
-                        cs.logic_and(states[6+j] >= self.ssyms.q_max[j], u[6+j]>0 )
+                        cs.logic_and(states[6+j] <= self.arm_ssyms.q_min[j], u[6+j]<0 ),
+                        cs.logic_and(states[6+j] >= self.arm_ssyms.q_max[j], u[6+j]>0 )
                         ),
                         0,
                         u[6+j]
@@ -516,17 +516,17 @@ class RobotDynamics():
 
                 states_checks[j+16] = cs.if_else(
                     cs.logic_or(
-                        cs.logic_and(states[6+j] <= self.ssyms.q_min[j], states[j+16]<0),
-                        cs.logic_and(states[6+j] >= self.ssyms.q_max[j], states[j+16]>0)
+                        cs.logic_and(states[6+j] <= self.arm_ssyms.q_min[j], states[j+16]<0),
+                        cs.logic_and(states[6+j] >= self.arm_ssyms.q_max[j], states[j+16]>0)
                         ),
                         0, 
                         states[j+16]
                         )
 
-            # u_checks = cs.fmin(cs.fmax(u, self.ssyms.u_min), self.ssyms.u_max)
-            states_checks[6:10] = cs.fmin(cs.fmax(states[6:10], self.ssyms.q_min), self.ssyms.q_max)
+            # u_checks = cs.fmin(cs.fmax(u, self.arm_ssyms.u_min), self.arm_ssyms.u_max)
+            states_checks[6:10] = cs.fmin(cs.fmax(states[6:10], self.arm_ssyms.q_min), self.arm_ssyms.q_max)
 
-        res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.ssyms.dt))  # evaluate with symbols
+        res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.arm_ssyms.dt))  # evaluate with symbols
         x_next = res['xf']
 
-        return x_next, states, u, self.ssyms.dt, self.ssyms.q_min, self.ssyms.q_max, self.ssyms.sim_p, self.fb_ssyms.sim_p, base_T, states_checks, u_checks
+        return x_next, states, u, self.arm_ssyms.dt, self.arm_ssyms.q_min, self.arm_ssyms.q_max, self.arm_ssyms.sim_p, self.fb_ssyms.sim_p, base_T, states_checks, u_checks

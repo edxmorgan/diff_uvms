@@ -165,15 +165,15 @@ class construct_uvms_syms():
     def __init__(self, n_joints):
         self.n_joints = n_joints
 
-        self.ssyms = construct_manipulator_syms(self.n_joints)
+        self.arm_ssyms = construct_manipulator_syms(self.n_joints)
         self.fb_ssyms = construct_vehicle_syms() #floating base symbols
 
-        self.uvms_states = vertcat(self.fb_ssyms.p_n, self.ssyms.q, self.fb_ssyms.v_uv, self.ssyms.q_dot)
+        self.uvms_states = vertcat(self.fb_ssyms.p_n, self.arm_ssyms.q, self.fb_ssyms.v_uv, self.arm_ssyms.q_dot)
         self.n = self.uvms_states[:10]
 
 
         self.nd =  vertcat(self.fb_ssyms.dx, self.fb_ssyms.dy, self.fb_ssyms.dz, 
-                           self.fb_ssyms.dphi, self.fb_ssyms.dthet, self.fb_ssyms.dpsi, self.ssyms.q_dot)  # NED velocity
+                           self.fb_ssyms.dphi, self.fb_ssyms.dthet, self.fb_ssyms.dpsi, self.arm_ssyms.q_dot)  # NED velocity
         
         self.uvms_states_ned = vertcat(self.n, self.nd)   
 
