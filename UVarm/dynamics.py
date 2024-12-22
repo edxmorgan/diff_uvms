@@ -58,7 +58,7 @@ class RobotDynamics():
         f_ext=None
         v_base = self.fb_ssyms.v_base 
         a_base = self.fb_ssyms.a_base
-        [f, fR, tau_gear, tau_motor, Si, i_X_p, i_X_0s, v, a, Ic, f_base, friction] = self.solves_rnea(q,
+        [f, fR, tau_gear, ID_exp, Si, i_X_p, i_X_0s, v, a, Ic, f_base, friction] = self.solves_rnea(q,
                                                                                                        q_dot,
                                                                                                        q_ddot,
                                                                                                        fw_static,
@@ -71,7 +71,9 @@ class RobotDynamics():
                                                                                                        coupled,
                                                                                                        v_base,
                                                                                                        a_base)
-        return tau_motor, f_base, i_X_p, i_X_0s, Si
+        if floating_base_id!=None:
+            ID_exp = cs.vertcat(f_base[3:6],f_base[0:3], ID_exp) # x, y ,z , r, p ,y ,q0, q1, q2, q3
+        return ID_exp
     
 
     def get_bias_force(self, gravity=9.81, floating_base_bias_f=None, coupled=True):
@@ -99,11 +101,11 @@ class RobotDynamics():
                                                                                 v_base,
                                                                                 a_base)
         if floating_base_bias_f!=None:
-            C = cs.vertcat(C_f_base, C)
+            C = cs.vertcat(C_f_base[3:6], C_f_base[0:3], C) # x, y ,z , r, p ,y ,q0, q1, q2, q3
         return C
 
     def get_inertia_matrix(self, gravity=9.81, floating_base_id=None, floating_base_bias_f=None, coupled=True):
-        tau, f_base, i_X_p, i_X_0s, Si = self.get_inverse_dynamics_rnea(gravity=gravity, floating_base_id=floating_base_id, coupled=coupled)
+        ID_exp = self.get_inverse_dynamics_rnea(gravity=gravity, floating_base_id=floating_base_id, coupled=coupled)
         ddX = self.ssyms.q_ddot
 
         if floating_base_id!=None and floating_base_bias_f==None:
@@ -112,13 +114,13 @@ class RobotDynamics():
             raise Exception("floating_base_id required for floating base operations")
         
         if floating_base_id!=None and floating_base_bias_f!=None:
-            tau = cs.vertcat(f_base, tau)
             ddX = cs.vertcat(self.fb_ssyms.a_base ,ddX)
+            ddX = cs.vertcat(ddX[3:6],ddX[0:3],ddX[6:]) # x, y ,z , r, p ,y ,q0, q1, q2, q3
 
         C = self.get_bias_force(gravity, floating_base_bias_f, coupled=coupled)
 
-        n = tau.size1()
-        ID_delta = tau - C
+        n = ID_exp.size1()
+        ID_delta = ID_exp - C
 
         H = cs.SX(n, n)
         for i in range(0, n):
@@ -454,10 +456,6 @@ class RobotDynamics():
             parameters = cs.vertcat(self.ssyms.sim_p,self.fb_ssyms.sim_p, base_T)
             states = self.sys_syms.uvms_states
             ode_xdd = cs.solve(H, u - C)
-            
-            # restructured orientation, position to position , orientation of the base vehicle
-            ode_xdd = cs.vertcat(ode_xdd[3:6],ode_xdd[0:3],ode_xdd[6:])
-            u = cs.vertcat(u[3:6],u[0:3],u[6:])
 
         elif C.size1() == self.ssyms.q_dot.size1():
             xd = self.ssyms.q_dot
