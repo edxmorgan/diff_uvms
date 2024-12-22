@@ -10,7 +10,8 @@ A library for generating the kinematics and dynamics of electric underwater robo
 - [ ] whole-body Inverse kinematics
 - [x] Joint Rotor Dynamics
 - [x] Hydrodynamics
-- [x] UVMS Controllers
+- [x] Model Identification Regressor
+- [x] UVMS PID Controller
 - [x] Examples
 
 For usage examples of Diff_UVMS, see [Jupyter notebook](https://github.com/edxmorgan/Diff_UVMS/tree/main/usage/example).
