@@ -20,3 +20,6 @@ Dynamics of moving base (underwater vehicle) used in [UVMS foward dynamics examp
 Roy Featherstone and Kluwer Academic Publishers. 1987. Robot Dynamics Algorithm. Kluwer Academic Publishers, USA. http://dx.doi.org/10.1007/978-1-4899-7560-7
 
 Fossen, T.I. (2011) Handbook of Marine Craft Hydrodynamics and Motion Control. John Wiley & Sons, Inc., Chichester, UK. https://doi.org/10.1002/9781119994138
+
+## Caution ⚠️  
+This project is still experimental. While the core functionalities have been implemented and tested to some extent, further validation and testing are required. Use with care, especially for safety-critical applications. Contributions and feedback are welcome!  
