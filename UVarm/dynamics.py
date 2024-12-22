@@ -290,6 +290,7 @@ class RobotDynamics():
         tau_motor = cs.SX.zeros(n_joints)
         F_base = cs.SX.zeros(6, 1)
 
+        v0 = cs.SX.zeros(6, 1)
         ag = cs.SX.zeros(6, 1)
         # FORWARD ITERATION
         for i in range(0, n_joints):
@@ -301,11 +302,10 @@ class RobotDynamics():
             else:
                 i_X_0 = plucker.spatial_mtimes(i_X_p[i],self.T_Base)
                 if coupled:
-                    v0 = i_X_0@vel_base
-                    a0 = i_X_0@ag # a0 = i_X_0@acc_base
-                    
+                    v0 = i_X_0@v0 #v0 = i_X_0@vel_base
+                    a0 = i_X_0@ag #a0 = i_X_0@acc_base
                 else:
-                    v0 = i_X_p[i]@cs.SX.zeros(6, 1) 
+                    v0 = i_X_p[i]@v0
                     a0 = i_X_p[i]@ag
                     
             i_X_0s.append(i_X_0)  # transformation of origin 0 to joint i
