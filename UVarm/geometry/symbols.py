@@ -1,11 +1,9 @@
-from casadi import SX,  vertcat, DM, horzcat, diag
+from casadi import SX,  vertcat
 
-class construct_syms():
+class construct_manipulator_syms():
     def __init__(self, n_joints):
         self.n_joints = n_joints
-        uv_dof = 6
         self.dt = SX.sym("dt")
-        self.uv_u = SX.sym("uv_u", uv_dof)
         self.m_u = SX.sym("m_u", n_joints)
 
         self.q_max = SX.sym('q_max', n_joints)
@@ -24,39 +22,7 @@ class construct_syms():
 
         self.rotor_spatial_inertia = SX.sym("Ir", 6,6, n_joints) #rotor spatial inertia
 
-        self.v_base = SX.sym('v_base', uv_dof) # base velocity
-        self.a_base = SX.sym('a_base', uv_dof) # base acceleration
-        self.baseT_xyz = SX.sym('T_xyz', 3) # manipulator-vehicle mount link xyz origin 
-        self.baseT_rpy = SX.sym('T_rpy', 3) # manipulator-vehicle mount link rpy origin
-        self.base_T = vertcat(self.baseT_rpy, self.baseT_xyz) # transform from origin to 1st child
-        self.v_c = SX.sym('v_c', 6) # flow current velocity
-        x = SX.sym('x')
-        y = SX.sym('y')
-        z = SX.sym('z')
-        self.tr_n = vertcat(x, y, z) # x, y ,z of uv wrt to ned origin
-        thet = SX.sym('thet')
-        phi = SX.sym('phi')
-        psi = SX.sym('psi')
-        self.eul = vertcat(phi, thet, psi)  # NED euler angular velocity
-        self.p_n = vertcat(self.tr_n, self.eul) # ned total states
-        self.v_uv = vertcat(self.v_base[3:6],self.v_base[0:3])
-
-        # self.uv_states = vertcat(self.p_n, self.v_uv)
         self.m_states = vertcat(self.q, self.q_dot)
-
-        self.uvms_states = vertcat(self.p_n, self.q, self.v_uv, self.q_dot)
-
-        self.n = self.uvms_states[:10]
-
-        dx = SX.sym('x_dot')
-        dy = SX.sym('y_dot')
-        dz = SX.sym('z_dot')
-        dthet = SX.sym('thet_dot')
-        dphi = SX.sym('phi_dot')
-        dpsi = SX.sym('psi_dot')
-        self.nd =  vertcat(dx, dy, dz, dphi, dthet, dpsi, self.q_dot)  # NED velocity
-        
-        self.uvms_states_ned = vertcat(self.n, self.nd)   
 
         # # hydrodynamics symbols
         # # xz, yz, xy planes of symmetry configuration of links
@@ -101,4 +67,115 @@ class construct_syms():
         self.sim_p = vertcat(self.m_rigid_body_p)
 
     def __repr__(self) -> str:
-        return "differentiable symbols"
+        return "differentiable manipulator symbols"
+
+
+class construct_vehicle_syms():
+    def __init__(self):
+
+        uv_dof = 6
+        self.uv_u = SX.sym("uv_u", uv_dof)
+        self.v_base = SX.sym('v_base', uv_dof) # base velocity
+        self.a_base = SX.sym('a_base', uv_dof) # base acceleration
+        self.baseT_xyz = SX.sym('T_xyz', 3) # manipulator-vehicle mount link xyz origin 
+        self.baseT_rpy = SX.sym('T_rpy', 3) # manipulator-vehicle mount link rpy origin
+        self.base_T = vertcat(self.baseT_rpy, self.baseT_xyz) # transform from origin to 1st child
+        self.v_c = SX.sym('v_c', 6) # flow current velocity
+        x = SX.sym('x')
+        y = SX.sym('y')
+        z = SX.sym('z')
+        self.tr_n = vertcat(x, y, z) # x, y ,z of uv wrt to ned origin
+        thet = SX.sym('thet')
+        phi = SX.sym('phi')
+        psi = SX.sym('psi')
+        self.eul = vertcat(phi, thet, psi)  # NED euler angular velocity
+        self.p_n = vertcat(self.tr_n, self.eul) # ned total states
+        self.v_uv = vertcat(self.v_base[3:6],self.v_base[0:3])
+
+        self.dx = SX.sym('x_dot')
+        self.dy = SX.sym('y_dot')
+        self.dz = SX.sym('z_dot')
+        self.dthet = SX.sym('thet_dot')
+        self.dphi = SX.sym('phi_dot')
+        self.dpsi = SX.sym('psi_dot')
+
+        W = SX.sym('W')  # weight
+        B = SX.sym('B')  # buoyancy
+        m = SX.sym('m')  # Mass
+
+        I_x = SX.sym('I_x')  # moment of inertia x entry
+        I_y = SX.sym('I_y')  # moment of inertia y entry
+        I_z = SX.sym('I_z')  # moment of inertia z entry
+        I_xz = SX.sym('I_xz')  # product of inertia zx entry
+
+        # CoG.
+        x_g = SX.sym('x_g')  # Center of gravity, x-axis wrt to the CO
+        y_g = SX.sym('y_g')  # Center of gravity, y-axis wrt to the CO
+        z_g = SX.sym('z_g')  # Center of gravity, z-axis wrt to the CO
+        r_g = vertcat(x_g, y_g, z_g) # center of gravity wrt body origin
+
+        x_b = SX.sym('x_b')  # Center of buoyancy, x-axis
+        y_b = SX.sym('y_b')  # Center of buoyancy, y-axis
+        z_b = SX.sym('z_b')  # Center of buoyancy, z-axis
+        r_b = vertcat(x_b, y_b, z_b) # center of buoyancy wrt body origin 
+
+        I_o = vertcat(I_x, I_y, I_z, I_xz) # EFFECTIVE rigid body inertia wrt body origin
+
+        X_du = SX.sym('X_du') # Added mass in surge
+        X_dq = SX.sym('X_dq') # coupled Added mass in surge & pitch
+        Y_dv = SX.sym('Y_dv') # Added mass in sway
+        Y_dp = SX.sym('Y_dp') # coupled Added mass in sway & roll
+        Z_dw = SX.sym('Z_dw') # Added mass in heave
+        K_dv = SX.sym('K_dv') # coupled Added mass in roll & sway
+        K_dp = SX.sym('K_dp') # Added mass in roll
+        M_du = SX.sym('M_du') # coupled Added mass in pitch & surge
+        M_dq = SX.sym('M_dq') # Added mass in pitch
+        N_dr = SX.sym('N_dr') # Added mass in yaw
+
+        X_u = SX.sym('X_u') # linear Drag coefficient in surge
+        Y_v = SX.sym('Y_v') # linear Drag coefficient in sway
+        Z_w = SX.sym('Z_w') # linear Drag coefficient in heave
+        K_p = SX.sym('K_p') # linear Drag coefficient in roll
+        M_q = SX.sym('M_q') # linear Drag coefficient in pitch
+        N_r = SX.sym('N_r') # linear Drag coefficient in yaw
+
+        X_uu = SX.sym('X_uu') # quadratic Drag coefficient in surge
+        Y_vv = SX.sym('Y_vv') # quadratic Drag coefficient in sway
+        Z_ww = SX.sym('Z_ww') # quadratic Drag coefficient in heave
+        K_pp = SX.sym('K_pp') # quadratic Drag coefficient in roll
+        M_qq = SX.sym('M_qq') # quadratic Drag coefficient in pitch
+        N_rr = SX.sym('N_rr') # quadratic Drag coefficient in yaw
+
+        # Current/flow velocity
+        v_c = SX.sym('v_c', 6, 1)
+        
+        # OTHER EFFECTIVE PARAMETERS
+        decoupled_added_m = vertcat(X_du, Y_dv, Z_dw, K_dp, M_dq, N_dr) # added mass in diagonals
+        coupled_added_m =  vertcat(X_dq, Y_dp, M_du, K_dv) # effective added mass in non diagonals
+
+        linear_dc = vertcat(X_u, Y_v, Z_w, K_p,  M_q, N_r) # linear damping coefficients
+        quadratic_dc = vertcat(X_uu, Y_vv, Z_ww, K_pp, M_qq, N_rr) # quadratic damping coefficients
+
+        self.sim_p = vertcat(m, W, B, r_g, r_b, I_o,
+                                decoupled_added_m, coupled_added_m,
+                                linear_dc, quadratic_dc, v_c)
+
+
+class construct_uvms_syms():
+    def __init__(self, n_joints):
+        self.n_joints = n_joints
+
+        self.ssyms = construct_manipulator_syms(self.n_joints)
+        self.fb_ssyms = construct_vehicle_syms() #floating base symbols
+
+        self.uvms_states = vertcat(self.fb_ssyms.p_n, self.ssyms.q, self.fb_ssyms.v_uv, self.ssyms.q_dot)
+        self.n = self.uvms_states[:10]
+
+
+        self.nd =  vertcat(self.fb_ssyms.dx, self.fb_ssyms.dy, self.fb_ssyms.dz, 
+                           self.fb_ssyms.dphi, self.fb_ssyms.dthet, self.fb_ssyms.dpsi, self.ssyms.q_dot)  # NED velocity
+        
+        self.uvms_states_ned = vertcat(self.n, self.nd)   
+
+    def __repr__(self) -> str:
+        return "differentiable uvms symbols"

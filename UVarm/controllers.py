@@ -1,10 +1,12 @@
-from UVarm.geometry.symbols import construct_syms as sys_syms
+from UVarm.geometry.symbols import construct_manipulator_syms as manipulator_sys_syms
+from UVarm.geometry.symbols import construct_vehicle_syms as vehicle_sys_syms
 import casadi as cs
 
 
 class RobotControllers():
     def __init__(self, n_joints):
-        self.ssyms = sys_syms(n_joints)
+        self.ssyms = manipulator_sys_syms(n_joints)
+        self.fb_ssyms = vehicle_sys_syms() #floating base symbols
         print(f"number of joints = {self.ssyms.n_joints}")
 
         self.qref = cs.SX.sym('qref', self.ssyms.n_joints)  # Desired joint positions

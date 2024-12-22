@@ -1,5 +1,5 @@
 import UVarm.geometry.plucker as plucker
-from UVarm.geometry.symbols import construct_syms as sys_syms
+from UVarm.geometry.symbols import construct_uvms_syms as UVMS_syms
 from UVarm.urdfparser import URDFparser
 import casadi as cs
 import numpy as np
@@ -15,15 +15,20 @@ class RobotDynamics():
             root, tip)
         self.n_joints = self.parser.get_n_joints(root, tip)
         self.limits = self.parser.get_dynamics_limits(root, tip)
-        self.ssyms = sys_syms(self.n_joints)
+
+        self.sys_syms = UVMS_syms( self.n_joints) #whole body symbols
+
+        self.ssyms = self.sys_syms.ssyms # manipulator symbols
+        self.fb_ssyms = self.sys_syms.fb_ssyms #floating base symbols
+
         print(f"number of joints = {self.ssyms.n_joints}")
         self.robot_desc = copy.deepcopy(self.parser.robot_desc_backup)
-        self.T_Base = plucker.XT(self.ssyms.baseT_xyz, self.ssyms.baseT_rpy)
+        self.T_Base = plucker.XT(self.fb_ssyms.baseT_xyz, self.fb_ssyms.baseT_rpy)
 
     def forward_kinematics(self, floating_base = False):
         q = self.ssyms.q
         i_X_p, tip_offset, Si, Ic, Icom, Im = self._model_calculation(q)
-        T_Base = plucker.XT(self.ssyms.baseT_xyz, self.ssyms.baseT_rpy)
+        T_Base = plucker.XT(self.fb_ssyms.baseT_xyz, self.fb_ssyms.baseT_rpy)
 
         i_X_0s = []
         for i in range(0, self.ssyms.n_joints):
@@ -31,7 +36,7 @@ class RobotDynamics():
                 i_X_0 = plucker.spatial_mtimes(i_X_p[i],i_X_0)
             else:
                 if floating_base:
-                    NED_0_ = plucker.XT(self.ssyms.tr_n, self.ssyms.eul)
+                    NED_0_ = plucker.XT(self.fb_ssyms.tr_n, self.fb_ssyms.eul)
                     T_Base_X_NED_0 = plucker.spatial_mtimes(T_Base, NED_0_)
                     i_X_0 = plucker.spatial_mtimes(i_X_p[i],T_Base_X_NED_0)
                 else:
@@ -51,8 +56,8 @@ class RobotDynamics():
         fw_static, fw_viscous = self.ssyms.fw_static, self.ssyms.fw_viscous
         bw_static, bw_viscous = self.ssyms.bw_static, self.ssyms.bw_viscous
         f_ext=None
-        v_base = self.ssyms.v_base 
-        a_base = self.ssyms.a_base
+        v_base = self.fb_ssyms.v_base 
+        a_base = self.fb_ssyms.a_base
         [f, fR, tau_gear, tau_motor, Si, i_X_p, i_X_0s, v, a, Ic, f_base, friction] = self.solves_rnea(q,
                                                                                                        q_dot,
                                                                                                        q_ddot,
@@ -78,8 +83,8 @@ class RobotDynamics():
         bw_static, bw_viscous = self.ssyms.bw_static, self.ssyms.bw_viscous
         gravity = gravity
         f_ext=None
-        v_base = self.ssyms.v_base 
-        a_base = [0]*self.ssyms.a_base.size1()
+        v_base = self.fb_ssyms.v_base 
+        a_base = [0]*self.fb_ssyms.a_base.size1()
         [f, fR, tau_gear, C, Si, i_X_p, i_X_0s, v, a, Ic, C_f_base, friction] = self.solves_rnea(q,
                                                                                 q_dot,
                                                                                 q_ddot,
@@ -108,7 +113,7 @@ class RobotDynamics():
         
         if floating_base_id!=None and floating_base_bias_f!=None:
             tau = cs.vertcat(f_base, tau)
-            ddX = cs.vertcat(self.ssyms.a_base ,ddX)
+            ddX = cs.vertcat(self.fb_ssyms.a_base ,ddX)
 
         C = self.get_bias_force(gravity, floating_base_bias_f, coupled=coupled)
 
@@ -443,11 +448,11 @@ class RobotDynamics():
             if J_uv == None:
                 raise Exception("provide uv position transformation matrix (NED)")
     
-            xd = cs.vertcat(J_uv@self.ssyms.v_uv ,self.ssyms.q_dot)
-            u = cs.vertcat(self.ssyms.uv_u, self.ssyms.m_u)
-            base_T = self.ssyms.base_T
-            parameters = cs.vertcat(self.ssyms.sim_p, base_T)
-            states = self.ssyms.uvms_states
+            xd = cs.vertcat(J_uv@self.fb_ssyms.v_uv ,self.ssyms.q_dot)
+            u = cs.vertcat(self.fb_ssyms.uv_u, self.ssyms.m_u)
+            base_T = self.fb_ssyms.base_T
+            parameters = cs.vertcat(self.ssyms.sim_p,self.fb_ssyms.sim_p, base_T)
+            states = self.sys_syms.uvms_states
             ode_xdd = cs.solve(H, u - C)
             
             # restructured orientation, position to position , orientation of the base vehicle
@@ -526,4 +531,4 @@ class RobotDynamics():
         res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.ssyms.dt))  # evaluate with symbols
         x_next = res['xf']
 
-        return x_next, states, u, self.ssyms.dt, self.ssyms.q_min, self.ssyms.q_max, self.ssyms.sim_p, base_T, states_checks, u_checks
+        return x_next, states, u, self.ssyms.dt, self.ssyms.q_min, self.ssyms.q_max, self.ssyms.sim_p, self.fb_ssyms.sim_p, base_T, states_checks, u_checks

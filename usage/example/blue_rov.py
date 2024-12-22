@@ -107,5 +107,5 @@ class Params:
     ki = np.array([0, 0, 0, 0, 0, 0])
     kd = np.array([2, 2, 2, 2, 2, 2])
     
-    sim_params = np.concatenate(( np.array([m]) , np.array([W]), np.array([B]), 
+    sim_p = np.concatenate(( np.array([m]) , np.array([W]), np.array([B]), 
                                            rg, rb, Io, added_m, coupl_added_m, linear_dc, quadratic_dc, v_flow))
