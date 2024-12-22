@@ -27,8 +27,8 @@ class Params:
 
     relative_urdf_path = f"/resources/urdf/alpha_5_robot.urdf"
 
-    joint_min = np.array([1.0, 0.01, 0.01, 0.01])
-    joint_max = np.array([5.5, 3.40, 3.40, 5.70])
+    joint_min = np.array([0.00, 1.50, 0.10, 0.10])
+    joint_max = np.array([5.50, 3.40, 3.40, 5.70])
     
     u_max = np.array([2.83664, 0.629139, 0.518764, 0.54]) 
     u_min = np.array([-2.83664, -0.629139, -0.518764, -0.54])
