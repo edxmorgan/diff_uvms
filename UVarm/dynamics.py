@@ -471,8 +471,8 @@ class RobotDynamics():
         sys = {}
         sys['x'] = states
         sys['u'] = u
-        sys['p'] = cs.vertcat(parameters, self.arm_ssyms.dt)
-        sys['ode'] = rhs*self.arm_ssyms.dt  # Time scaling
+        sys['p'] = cs.vertcat(parameters, self.sys_syms.dt)
+        sys['ode'] = rhs*self.sys_syms.dt  # Time scaling
 
         intg = cs.integrator('intg', 'rk', sys, 0, 1, {
                             'simplify': True, 'number_of_finite_elements': 30})
@@ -526,7 +526,7 @@ class RobotDynamics():
             # u_checks = cs.fmin(cs.fmax(u, self.arm_ssyms.u_min), self.arm_ssyms.u_max)
             states_checks[6:10] = cs.fmin(cs.fmax(states[6:10], self.arm_ssyms.q_min), self.arm_ssyms.q_max)
 
-        res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.arm_ssyms.dt))  # evaluate with symbols
+        res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.sys_syms.dt))  # evaluate with symbols
         x_next = res['xf']
 
-        return x_next, states, u, self.arm_ssyms.dt, self.arm_ssyms.q_min, self.arm_ssyms.q_max, self.arm_ssyms.sim_p, self.fb_ssyms.sim_p, base_T, states_checks, u_checks
+        return x_next, states, u, self.sys_syms.dt, self.arm_ssyms.q_min, self.arm_ssyms.q_max, self.arm_ssyms.sim_p, self.fb_ssyms.sim_p, base_T, states_checks, u_checks
