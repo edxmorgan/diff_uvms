@@ -1,5 +1,5 @@
-from UVarm.geometry.symbols import construct_manipulator_syms as manipulator_sys_syms
-from UVarm.geometry.symbols import construct_vehicle_syms as vehicle_sys_syms
+from diffUVMS.geometry.symbols import construct_manipulator_syms as manipulator_sys_syms
+from diffUVMS.geometry.symbols import construct_vehicle_syms as vehicle_sys_syms
 import casadi as cs
 
 

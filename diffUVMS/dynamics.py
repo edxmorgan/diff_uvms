@@ -1,6 +1,6 @@
-import UVarm.geometry.plucker as plucker
-from UVarm.geometry.symbols import construct_uvms_syms as UVMS_syms
-from UVarm.urdfparser import URDFparser
+import diffUVMS.geometry.plucker as plucker
+from diffUVMS.geometry.symbols import construct_uvms_syms as UVMS_syms
+from diffUVMS.urdfparser import URDFparser
 import casadi as cs
 import numpy as np
 import copy

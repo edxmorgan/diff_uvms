@@ -1,5 +1,5 @@
 # import casadi as cs
-import UVarm.geometry.transformation_matrix as tm
+import diffUVMS.geometry.transformation_matrix as tm
 import numpy as np
 from casadi import cos, SX, sin, skew, tan, inv, vertcat, horzcat, diag, inv_skew
 
