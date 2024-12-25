@@ -80,8 +80,8 @@ class construct_vehicle_syms():
 
         self.uv_dof = 6
         self.uv_u = SX.sym("uv_u", self.uv_dof)
-        self.v_base = SX.sym('v_base', self.uv_dof) # base velocity
-        self.a_base = SX.sym('a_base', self.uv_dof) # base acceleration
+        self.v_base = SX.sym('v_base', self.uv_dof) # base velocity in featherson notation
+        self.a_base = SX.sym('a_base', self.uv_dof) # base acceleration in featherson notation
         self.baseT_xyz = SX.sym('T_xyz', 3) # manipulator-vehicle mount link xyz origin 
         self.baseT_rpy = SX.sym('T_rpy', 3) # manipulator-vehicle mount link rpy origin
         self.base_T = vertcat(self.baseT_rpy, self.baseT_xyz) # transform from origin to 1st child
@@ -95,7 +95,7 @@ class construct_vehicle_syms():
         psi = SX.sym('psi')
         self.eul = vertcat(phi, thet, psi)  # NED euler angular velocity
         self.p_n = vertcat(self.tr_n, self.eul) # ned total states
-        self.v_uv = vertcat(self.v_base[3:6],self.v_base[0:3])
+        self.v_uv = vertcat(self.v_base[3:6],self.v_base[0:3]) #back to fossen spatial notation
 
         self.dx = SX.sym('x_dot')
         self.dy = SX.sym('y_dot')
@@ -181,9 +181,11 @@ class construct_uvms_syms():
         self.arm_ssyms = construct_manipulator_syms(n_joints)
         self.fb_ssyms = construct_vehicle_syms() #floating base symbols
 
-        self.uvms_states = vertcat(self.fb_ssyms.p_n, self.arm_ssyms.q, self.fb_ssyms.v_uv, self.arm_ssyms.q_dot)
+        self.n = vertcat(self.fb_ssyms.p_n, self.arm_ssyms.q) #NED position
 
-        self.n = self.uvms_states[:10] #NED position
+        self.uvms_vel = vertcat(self.fb_ssyms.v_uv, self.arm_ssyms.q_dot) #body velcity for uv and joint velocity for arm
+
+        self.uvms_states = vertcat(self.n, self.uvms_vel)
 
         self.nref = vertcat(self.fb_ssyms.uvref, self.arm_ssyms.qref)
 

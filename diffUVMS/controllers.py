@@ -42,7 +42,7 @@ class RobotControllers():
         err = self.uvms_ssyms.n - self.uvms_ssyms.nref
 
         #i_buffer = sum_e_buffer + ne*dt
-        pid = -cs.diag(self.uvms_ssyms.Kp)@err #- cs.diag(self.Kd)@(self.J_n@x_nb) #- diag(Ki)@i_buffer
+        pid = -cs.diag(self.uvms_ssyms.Kp)@err - cs.diag(self.uvms_ssyms.Kd)@(J@self.uvms_ssyms.uvms_vel) #- diag(Ki)@i_buffer
 
         pid_controller = g + J.T@pid
 
@@ -50,7 +50,7 @@ class RobotControllers():
         limited_pd_controller = cs.fmin(cs.fmax(pid_controller, self.uvms_ssyms.u_min), self.uvms_ssyms.u_max)
 
         controller = cs.Function('pid', 
-                           [self.uvms_ssyms.n, self.uvms_ssyms.nref, gn, J_n, self.uvms_ssyms.Kp, self.uvms_ssyms.u_min, self.uvms_ssyms.u_max],
+                           [self.uvms_ssyms.n, self.uvms_ssyms.uvms_vel, self.uvms_ssyms.nref, gn, J_n, self.uvms_ssyms.Kp, self.uvms_ssyms.Kd, self.uvms_ssyms.u_min, self.uvms_ssyms.u_max],
                              [limited_pd_controller, err])
         
         return controller #, i_buffer
