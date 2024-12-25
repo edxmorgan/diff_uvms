@@ -103,9 +103,9 @@ class Params:
     below_surface = 1.0 #random
     dt_s = T/N
 
-    kp = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
-    ki = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-    kd = np.array([2, 2, 2, 2, 2, 2])
+    kp = np.array([1, 1, 1, 1, 1, 1])
+    ki = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    kd = np.array([4, 3, 3, 3, 3, 3])
 
     u_min = np.array([-10, -10, -10, -10, -10, -10])
     u_max = np.array([10, 10, 10, 10, 10, 10])

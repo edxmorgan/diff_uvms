@@ -12,7 +12,7 @@ class RobotControllers():
         print(f"number of joints = {self.arm_ssyms.n_joints}")
 
 
-    def pid(self):
+    def arm_position_controller(self):
         # Error between reference and actual position
         err = self.arm_ssyms.q - self.arm_ssyms.qref
 
@@ -42,7 +42,7 @@ class RobotControllers():
         err = self.uvms_ssyms.n - self.uvms_ssyms.nref
 
         i_buffer = self.uvms_ssyms.sum_e_buffer + err*self.uvms_ssyms.dt
-        pid = -cs.diag(self.uvms_ssyms.Kp)@err - cs.diag(self.uvms_ssyms.Kd)@(J@self.uvms_ssyms.uvms_vel) #- cs.diag(self.uvms_ssyms.Ki)@i_buffer
+        pid = -cs.diag(self.uvms_ssyms.Kp)@err - cs.diag(self.uvms_ssyms.Kd)@(J@self.uvms_ssyms.uvms_vel) - cs.diag(self.uvms_ssyms.Ki)@i_buffer
 
         pid_controller = g + J.T@pid
 
