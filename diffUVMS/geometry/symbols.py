@@ -70,6 +70,7 @@ class construct_manipulator_syms():
         self.qref = SX.sym('qref', self.n_joints)  # Desired joint positions
         self.u_max = SX.sym('u_max', self.n_joints)
         self.u_min = SX.sym('u_min', self.n_joints)
+        self.sum_e_buffer = SX.sym("sum_e_buffer", self.n_joints,1)
 
     def __repr__(self) -> str:
         return "differentiable manipulator symbols"
@@ -171,8 +172,7 @@ class construct_vehicle_syms():
         self.uvref = SX.sym('uv_ref', self.uv_dof)  # Desired dof positions
         self.u_max = SX.sym('u_max', self.uv_dof)
         self.u_min = SX.sym('u_min', self.uv_dof)
-
-        # self.sum_e_buffer = SX.sym("sum_e_buffer", 6,1)
+        self.sum_e_buffer = SX.sym("sum_e_buffer", self.uv_dof,1)
 
 
 class construct_uvms_syms():
@@ -191,6 +191,8 @@ class construct_uvms_syms():
 
         self.Kp =  vertcat(self.fb_ssyms.Kp, self.arm_ssyms.Kp)
         self.Kd =  vertcat(self.fb_ssyms.Kd, self.arm_ssyms.Kd)
+        self.Ki =  vertcat(self.fb_ssyms.Ki, self.arm_ssyms.Ki)
+        self.sum_e_buffer = vertcat(self.fb_ssyms.sum_e_buffer, self.arm_ssyms.sum_e_buffer)
 
         self.u_min = vertcat(self.fb_ssyms.u_min, self.arm_ssyms.u_min)
         self.u_max = vertcat(self.fb_ssyms.u_max, self.arm_ssyms.u_max)

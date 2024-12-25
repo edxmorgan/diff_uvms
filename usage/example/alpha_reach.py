@@ -34,6 +34,7 @@ class Params:
     u_min = np.array([-2.83664, -0.629139, -0.518764, -0.54])
 
     Kp = cs.vertcat(15.0, 15.0, 20.0, 15.0)
+    Ki = cs.vertcat(0.1, 0.1, 0.1, 0.1)
     Kd = cs.vertcat(0.1, 0.1, 0.1, 0.1)
 
     # rho = 1 #kg/L

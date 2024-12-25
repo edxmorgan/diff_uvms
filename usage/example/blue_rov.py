@@ -104,7 +104,7 @@ class Params:
     dt_s = T/N
 
     kp = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
-    ki = np.array([0, 0, 0, 0, 0, 0])
+    ki = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
     kd = np.array([2, 2, 2, 2, 2, 2])
 
     u_min = np.array([-10, -10, -10, -10, -10, -10])
