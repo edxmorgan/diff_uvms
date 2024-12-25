@@ -90,7 +90,7 @@ class Params:
 
     base_T0 = [3.142, 0.000, 0.000, 0.140, 0.000, -0.120] #transformation of uv body frame to manipulator base
 
-    sim_n = 240 # time horizon
+    sim_n = 100 # time horizon
     delta_t = 0.05
     N = int(sim_n/delta_t) # number of control intervals
 
