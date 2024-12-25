@@ -64,6 +64,12 @@ class construct_manipulator_syms():
         
   
         self.sim_p = vertcat(self.m_rigid_body_p)
+        self.Kp = SX.sym('Kp',self.n_joints)
+        self.Kd = SX.sym('Kd',self.n_joints)
+        self.Ki = SX.sym('Ki',self.n_joints)
+        self.qref = SX.sym('qref', self.n_joints)  # Desired joint positions
+        self.u_max = SX.sym('u_max', self.n_joints)
+        self.u_min = SX.sym('u_min', self.n_joints)
 
     def __repr__(self) -> str:
         return "differentiable manipulator symbols"
@@ -72,14 +78,14 @@ class construct_manipulator_syms():
 class construct_vehicle_syms():
     def __init__(self):
 
-        uv_dof = 6
-        self.uv_u = SX.sym("uv_u", uv_dof)
-        self.v_base = SX.sym('v_base', uv_dof) # base velocity
-        self.a_base = SX.sym('a_base', uv_dof) # base acceleration
+        self.uv_dof = 6
+        self.uv_u = SX.sym("uv_u", self.uv_dof)
+        self.v_base = SX.sym('v_base', self.uv_dof) # base velocity
+        self.a_base = SX.sym('a_base', self.uv_dof) # base acceleration
         self.baseT_xyz = SX.sym('T_xyz', 3) # manipulator-vehicle mount link xyz origin 
         self.baseT_rpy = SX.sym('T_rpy', 3) # manipulator-vehicle mount link rpy origin
         self.base_T = vertcat(self.baseT_rpy, self.baseT_xyz) # transform from origin to 1st child
-        self.v_c = SX.sym('v_c', 6) # flow current velocity
+        self.v_c = SX.sym('v_c', self.uv_dof) # flow current velocity
         x = SX.sym('x')
         y = SX.sym('y')
         z = SX.sym('z')
@@ -159,30 +165,33 @@ class construct_vehicle_syms():
                                 decoupled_added_m, coupled_added_m,
                                 linear_dc, quadratic_dc, v_c)
         
-        self.Kp = SX.sym('Kp',6,1)
-        self.Kd = SX.sym('Kd',6,1)
-        self.Ki = SX.sym('Ki',6,1)
-        self.sum_e_buffer = SX.sym("sum_e_buffer", 6,1)
-        self.nd = SX.sym('nd', 6,1)
-        self.vb_d = SX.sym('vb_d', 6,1)
-        # xS0_prev = SX.sym('xS0_prev', 12,1)
+        self.Kp = SX.sym('Kp', self.uv_dof)
+        self.Kd = SX.sym('Kd', self.uv_dof)
+        self.Ki = SX.sym('Ki', self.uv_dof)
+        self.uvref = SX.sym('uv_ref', self.uv_dof)  # Desired dof positions
+        self.u_max = SX.sym('u_max', self.uv_dof)
+        self.u_min = SX.sym('u_min', self.uv_dof)
+
+        # self.sum_e_buffer = SX.sym("sum_e_buffer", 6,1)
 
 
 class construct_uvms_syms():
     def __init__(self, n_joints):
-        self.n_joints = n_joints
         self.dt = SX.sym("dt")
-        self.arm_ssyms = construct_manipulator_syms(self.n_joints)
+        self.arm_ssyms = construct_manipulator_syms(n_joints)
         self.fb_ssyms = construct_vehicle_syms() #floating base symbols
 
         self.uvms_states = vertcat(self.fb_ssyms.p_n, self.arm_ssyms.q, self.fb_ssyms.v_uv, self.arm_ssyms.q_dot)
-        self.n = self.uvms_states[:10]
 
+        self.n = self.uvms_states[:10] #NED position
 
-        self.nd =  vertcat(self.fb_ssyms.dx, self.fb_ssyms.dy, self.fb_ssyms.dz, 
-                           self.fb_ssyms.dphi, self.fb_ssyms.dthet, self.fb_ssyms.dpsi, self.arm_ssyms.q_dot)  # NED velocity
-        
-        self.uvms_states_ned = vertcat(self.n, self.nd)   
+        self.nref = vertcat(self.fb_ssyms.uvref, self.arm_ssyms.qref)
+
+        self.Kp =  vertcat(self.fb_ssyms.Kp, self.arm_ssyms.Kp)
+        self.Kd =  vertcat(self.fb_ssyms.Kd, self.arm_ssyms.Kd)
+
+        self.u_min = vertcat(self.fb_ssyms.u_min, self.arm_ssyms.u_min)
+        self.u_max = vertcat(self.fb_ssyms.u_max, self.arm_ssyms.u_max)
 
     def __repr__(self) -> str:
         return "differentiable uvms symbols"
