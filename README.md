@@ -7,9 +7,9 @@ A library for generating the kinematics and dynamics of electric underwater robo
 - [x] [whole-body forward dynamics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/uvms_forward_dynamics.ipynb)
 - [x] [whole-body inverse dynamics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/uvms_inverse_dynamics.ipynb)
 - [x] [whole-body forward kinematics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/uvms_forward_kinematics.ipynb)
-- [ ] [whole-body inverse kinematics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/uvms_inverse_kinematics)
+- [ ] [whole-body inverse kinematics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/uvms_inverse_kinematics.ipynb)
 - [x] [model identification regressor](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/uvms_for_identification.ipynb)
-- [ ] [whole-body nonlinear PID controller](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/uvms_pid)
+- [x] [whole-body nonlinear PID controller](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/uvms_pid.ipynb)
 
 For usage examples of Diff_UVMS, see [Jupyter notebook](https://github.com/edxmorgan/Diff_UVMS/tree/main/usage/example).
 
