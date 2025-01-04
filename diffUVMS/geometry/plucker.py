@@ -1,7 +1,7 @@
 # import casadi as cs
 import diffUVMS.geometry.transformation_matrix as tm
 import numpy as np
-from casadi import cos, SX, sin, skew, tan, inv, vertcat, horzcat, diag, inv_skew
+from casadi import cos, SX, sin, skew, tan, inv, vertcat, horzcat, diag, inv_skew, if_else, fmod, pi, asin, sqrt, atan2, acos
 
 # Returns Skew symmetric matrix defined by 3 val vector v. 
 def cross_pO(v):
@@ -200,5 +200,96 @@ def inverse_spatial_transform(i_X_p):
 
     
 
+def rotation_matrix_to_euler(R, order='zyx'):
+    """
+    Convert a rotation matrix to Euler angles using CasADi symbolic expressions.
 
+    Parameters:
+    R (SX or MX): 3x3 rotation matrix
+    order (str): Order of Euler angles axes. 
+                 Common orders include 'zyx', 'xyz', 'zyz', etc.
 
+    Returns:
+    euler (SX or MX): 3x1 vector of Euler angles in radians
+    """
+    # Validate the order
+    # Define supported orders
+    supported_orders = [
+        'zyx', 'xyz', 'zyz', 'xzx', 'yxy', 'yzy',
+        'zxy', 'yxz', 'yzx', 'xyx', 'xzy', 'zyx'
+    ]
+    if order not in supported_orders:
+        raise ValueError(f"Unsupported Euler order '{order}'. Supported orders are {supported_orders}.")
+
+    # Ensure R is a 3x3 matrix
+    assert R.shape == (3, 3), "Rotation matrix must be 3x3."
+
+    # Helper function to compute Euler angles for 'zyx' order
+    if order == 'zyx':
+        # yaw (psi)   : rotation about z-axis
+        # pitch (theta): rotation about y-axis
+        # roll (phi)  : rotation about x-axis
+
+        # Compute pitch
+        pitch = asin(-R[2, 0])
+
+        # To handle the singularity when cos(pitch) is close to zero
+        cos_pitch = sqrt(1 - R[2, 0]**2)
+
+        # Define a small threshold to detect singularity
+        epsilon = 1e-6
+
+        # Compute yaw and roll
+        yaw = if_else(cos_pitch > epsilon,
+                        atan2(R[1, 0], R[0, 0]),
+                        0)  # When cos(pitch) is near zero, set yaw to zero
+
+        roll = if_else(cos_pitch > epsilon,
+                         atan2(R[2, 1], R[2, 2]),
+                         atan2(-R[1, 2], R[1, 1]))
+
+        euler = vertcat(roll, pitch, yaw)
+
+    elif order == 'xyz':
+        # Compute pitch
+        pitch = asin(R[0, 2])
+
+        # Handle singularity
+        cos_pitch = sqrt(1 - R[0, 2]**2)
+        epsilon = 1e-6
+
+        roll = if_else(cos_pitch > epsilon,
+                         atan2(-R[1, 2], R[2, 2]),
+                         0)
+
+        yaw = if_else(cos_pitch > epsilon,
+                        atan2(-R[0, 1], R[0, 0]),
+                        atan2(R[1, 0], R[1, 1]))
+
+        euler = vertcat(roll, pitch, yaw)
+
+    elif order == 'zyz':
+        # Compute theta
+        theta = acos(R[2, 2])
+
+        # Handle singularity when theta is 0 or pi
+        sin_theta = sin(theta)
+        epsilon = 1e-6
+
+        phi = if_else(sin_theta > epsilon,
+                        atan2(R[2, 0], R[2, 1]),
+                        0)
+
+        psi = if_else(sin_theta > epsilon,
+                        atan2(R[0, 2], -R[1, 2]),
+                        atan2(-R[1, 0], R[0, 0]))
+
+        euler = vertcat(phi, theta, psi)
+
+    else:
+        raise NotImplementedError(f"Euler order '{order}' is not implemented yet.")
+
+    # Normalize angles to be within [-pi, pi]
+    euler = fmod(euler + pi, 2 * pi) - pi
+
+    return euler
