@@ -97,6 +97,7 @@ class construct_vehicle_syms():
         self.eul = vertcat(phi, thet, psi)  # NED euler angular velocity
         self.p_n = vertcat(self.tr_n, self.eul) # ned total states
         self.v_uv = vertcat(self.v_base[3:6],self.v_base[0:3]) #back to fossen spatial notation
+        self.a_uv = vertcat(self.a_base[3:6],self.a_base[0:3]) #back to fossen spatial notation
 
         self.dx = SX.sym('x_dot')
         self.dy = SX.sym('y_dot')
@@ -184,6 +185,7 @@ class construct_uvms_syms():
         self.n = vertcat(self.fb_ssyms.p_n, self.arm_ssyms.q) #NED position
 
         self.uvms_vel = vertcat(self.fb_ssyms.v_uv, self.arm_ssyms.q_dot) #body velcity for uv and joint velocity for arm
+        self.uvms_acc = vertcat(self.fb_ssyms.a_uv, self.arm_ssyms.q_ddot) #body acceleration for uv and joint acceleration for arm
 
         self.uvms_states = vertcat(self.n, self.uvms_vel)
 
