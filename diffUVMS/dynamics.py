@@ -25,6 +25,40 @@ class RobotDynamics():
         self.robot_desc = copy.deepcopy(self.parser.robot_desc_backup)
         self.T_Base = plucker.XT(self.fb_ssyms.baseT_xyz, self.fb_ssyms.baseT_rpy)
 
+    def workspace(self, floating_base = False):
+        _, i_X_0s = self.forward_kinematics(floating_base = floating_base)
+        H4 , R4, p4 = plucker.spatial_to_homogeneous(i_X_0s[-1])
+        T4_euler = cs.vertcat(p4, plucker.rotation_matrix_to_euler(R4, order='xyz'))
+        internal_fk_eval_euler = cs.Function("internal_fkeval_euler", [self.sys_syms.n, self.fb_ssyms.base_T], [T4_euler])
+
+        # Initialize extremes
+        min_x = cs.inf
+        max_x = -cs.inf
+        min_y = cs.inf
+        max_y = -cs.inf
+        min_z = cs.inf
+        max_z = -cs.inf
+
+        # Compute extremes
+        for i in range(self.arm_ssyms.joint_configurations.size1()):
+            config = cs.vertcat(self.fb_ssyms.p_n, self.arm_ssyms.joint_configurations[i,:].T)
+            pose = internal_fk_eval_euler(config, self.fb_ssyms.base_T)
+            x = pose[:3][0]
+            y = pose[:3][1]
+            z = pose[:3][2]
+
+            # Update min and max values
+            min_x = cs.if_else(x < min_x, x, min_x)
+            max_x = cs.if_else(x > max_x, x, max_x)
+            
+            min_y = cs.if_else(y < min_y, y, min_y)
+            max_y = cs.if_else(y > max_y, y, max_y)
+            
+            min_z = cs.if_else(z < min_z, z, min_z)
+            max_z = cs.if_else(z > max_z, z, max_z)
+
+        return min_x, max_x, min_y, max_y, min_z, max_z
+
     def forward_kinematics(self, floating_base = False):
         q = self.arm_ssyms.q
         i_X_p, tip_offset, Si, Ic, Icom, Im = self._model_calculation(q)

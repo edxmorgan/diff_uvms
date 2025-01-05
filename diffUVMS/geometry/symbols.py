@@ -3,6 +3,7 @@ from casadi import SX,  vertcat
 class construct_manipulator_syms():
     def __init__(self, n_joints):
         self.n_joints = n_joints
+        self.joint_configurations = SX.sym('joint_configs', 2**n_joints, n_joints)
         self.m_u = SX.sym("m_u", n_joints)
 
         self.q_max = SX.sym('q_max', n_joints)
@@ -183,7 +184,7 @@ class construct_uvms_syms():
         self.fb_ssyms = construct_vehicle_syms() #floating base symbols
 
         self.n = vertcat(self.fb_ssyms.p_n, self.arm_ssyms.q) #NED position
-
+        
         self.uvms_vel = vertcat(self.fb_ssyms.v_uv, self.arm_ssyms.q_dot) #body velcity for uv and joint velocity for arm
         self.uvms_acc = vertcat(self.fb_ssyms.a_uv, self.arm_ssyms.q_ddot) #body acceleration for uv and joint acceleration for arm
 

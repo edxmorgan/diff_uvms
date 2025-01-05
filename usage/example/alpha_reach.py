@@ -20,6 +20,7 @@
 
 import numpy as np
 import casadi as cs
+import itertools
 
 class Params:
     root = "base_link"
@@ -29,7 +30,10 @@ class Params:
 
     joint_min = np.array([0.00, 1.50, 0.10, 0.10])
     joint_max = np.array([5.50, 3.40, 3.40, 5.70])
-    
+
+    joint_limits = list(zip(joint_min.tolist(), joint_max.tolist()))
+    joint_limits_configurations = np.array(list(itertools.product(*joint_limits)))
+
     u_max = np.array([2.83664, 0.629139, 0.518764, 0.54]) 
     u_min = np.array([-2.83664, -0.629139, -0.518764, -0.54])
 
