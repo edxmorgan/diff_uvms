@@ -535,7 +535,6 @@ class RobotDynamics():
                         0,
                         states[j+4]
                         )
-            # states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.arm_ssyms.u_min), self.arm_ssyms.u_max)
             states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.arm_ssyms.q_min), self.arm_ssyms.q_max)
         else:
             for j in range(self.arm_ssyms.n_joints):
@@ -556,8 +555,6 @@ class RobotDynamics():
                         0, 
                         states[j+16]
                         )
-
-            # u_checks = cs.fmin(cs.fmax(u, self.arm_ssyms.u_min), self.arm_ssyms.u_max)
             states_checks[6:10] = cs.fmin(cs.fmax(states[6:10], self.arm_ssyms.q_min), self.arm_ssyms.q_max)
 
         res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.sys_syms.dt))  # evaluate with symbols
