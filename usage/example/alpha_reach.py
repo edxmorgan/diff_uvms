@@ -34,8 +34,8 @@ class Params:
     joint_limits = list(zip(joint_min.tolist(), joint_max.tolist()))
     joint_limits_configurations = np.array(list(itertools.product(*joint_limits)))
 
-    u_max = np.array([2.83664, 0.629139, 0.518764, 0.54]) 
     u_min = np.array([-2.83664, -0.629139, -0.518764, -0.54])
+    u_max = np.array([2.83664, 0.629139, 0.518764, 0.54]) 
 
     Kp = cs.vertcat(15.0, 15.0, 20.0, 15.0)
     Ki = cs.vertcat(0.01, 0.01, 0.01, 0.01)
