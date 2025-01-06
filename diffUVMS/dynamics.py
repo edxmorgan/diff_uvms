@@ -4,7 +4,7 @@ from diffUVMS.urdfparser import URDFparser
 import casadi as cs
 import numpy as np
 import copy
-
+import itertools
 class RobotDynamics():
     def __init__(self, path_to_urdf,  root, tip):
         self.root = root
@@ -56,8 +56,10 @@ class RobotDynamics():
             
             min_z = cs.if_else(z < min_z, z, min_z)
             max_z = cs.if_else(z > max_z, z, max_z)
-
-        return min_x, max_x, min_y, max_y, min_z, max_z
+        workspace = list(zip([min_x, min_y, min_z],
+                            [max_x, max_y, max_z] ))
+        workspace_extreme_points = np.array(list(itertools.product(*workspace)))
+        return min_x, max_x, min_y, max_y, min_z, max_z, workspace_extreme_points
 
     def forward_kinematics(self, floating_base = False):
         q = self.arm_ssyms.q
