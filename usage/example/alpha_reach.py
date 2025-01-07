@@ -90,7 +90,7 @@ class Params:
                             0.0, 0.0, 0.0, 0.0,
                             3.0, 1.8, 1.0, 1.15)
 
-    sim_p = cs.vertcat(Gear_p, rigid_p0)
+    sim_p = cs.vertcat(Gear_p, rigid_p0).full()
 
     base_T0 = [3.142, 0.000, 0.000, 0.140, 0.000, -0.120] #transformation of uv body frame to manipulator base
 

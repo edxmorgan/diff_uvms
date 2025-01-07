@@ -501,14 +501,16 @@ class RobotDynamics():
             states = self.arm_ssyms.m_states
             ode_xdd = cs.solve(H, u - C)
 
-        rhs = cs.vertcat(xd, ode_xdd)  # the complete ODE vector
-
+        rhs_xd = xd*self.sys_syms.dt
+        rhs_xdd = ode_xdd*self.sys_syms.dt
+        rhs = cs.vertcat(rhs_xd, rhs_xdd)  # the complete ODE vector with Time scaling
+        
         # integrator to discretize the system
         sys = {}
         sys['x'] = states
         sys['u'] = u
         sys['p'] = cs.vertcat(parameters, self.sys_syms.dt)
-        sys['ode'] = rhs*self.sys_syms.dt  # Time scaling
+        sys['ode'] = rhs 
 
         intg = cs.integrator('intg', 'rk', sys, 0, 1, {
                             'simplify': True, 'number_of_finite_elements': 30})
@@ -562,4 +564,5 @@ class RobotDynamics():
         res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.sys_syms.dt))  # evaluate with symbols
         x_next = res['xf']
 
-        return x_next, states, u, self.sys_syms.dt, self.arm_ssyms.q_min, self.arm_ssyms.q_max, self.arm_ssyms.sim_p, self.fb_ssyms.sim_p, base_T, states_checks, u_checks
+        # use a dict here
+        return x_next, rhs_xdd, states, u, self.sys_syms.dt, self.arm_ssyms.q_min, self.arm_ssyms.q_max, self.arm_ssyms.sim_p, self.fb_ssyms.sim_p, base_T, states_checks, u_checks
