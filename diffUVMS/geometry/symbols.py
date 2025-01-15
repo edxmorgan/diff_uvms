@@ -184,7 +184,8 @@ class construct_uvms_syms():
         self.fb_ssyms = construct_vehicle_syms() #floating base symbols
 
         self.n = vertcat(self.fb_ssyms.p_n, self.arm_ssyms.q) #NED position
-        
+        self.dn = SX.sym("dn", self.fb_ssyms.uv_dof + self.arm_ssyms.n_joints) # explicit NED velocity
+
         self.uvms_vel = vertcat(self.fb_ssyms.v_uv, self.arm_ssyms.q_dot) #body velcity for uv and joint velocity for arm
         self.uvms_acc = vertcat(self.fb_ssyms.a_uv, self.arm_ssyms.q_ddot) #body acceleration for uv and joint acceleration for arm
 
