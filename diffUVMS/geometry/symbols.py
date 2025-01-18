@@ -79,8 +79,11 @@ class construct_manipulator_syms():
 
 class construct_vehicle_syms():
     def __init__(self):
-
+       
         self.uv_dof = 6
+        self.p_max = SX.sym('p_max', self.uv_dof) # pose upper limit
+        self.p_min = SX.sym('p_min', self.uv_dof) # pose lower limit
+
         self.uv_u = SX.sym("uv_u", self.uv_dof)
         self.v_base = SX.sym('v_base', self.uv_dof) # base velocity in featherson notation
         self.a_base = SX.sym('a_base', self.uv_dof) # base acceleration in featherson notation
@@ -182,9 +185,16 @@ class construct_uvms_syms():
         self.dt = SX.sym("dt")
         self.arm_ssyms = construct_manipulator_syms(n_joints)
         self.fb_ssyms = construct_vehicle_syms() #floating base symbols
+        self.total_dof = self.fb_ssyms.uv_dof+ self.arm_ssyms.n_joints
+
+        self.ul = vertcat(self.fb_ssyms.p_max , self.arm_ssyms.q_max) # upper limits of robot generalized coordinates
+        self.ll = vertcat(self.fb_ssyms.p_min , self.arm_ssyms.q_min) # lower limits of robot generalized coordinates
+
+        self.k0 = SX.sym('k0', self.total_dof) # secondary task rate
 
         self.n = vertcat(self.fb_ssyms.p_n, self.arm_ssyms.q) #NED position
-        self.dn = SX.sym("dn", self.fb_ssyms.uv_dof + self.arm_ssyms.n_joints) # explicit NED velocity
+        self.dn = SX.sym("dn", self.total_dof) # explicit NED velocity
+        self.des_v = SX.sym("op_space_vel", 6) # operational space velocity
 
         self.uvms_vel = vertcat(self.fb_ssyms.v_uv, self.arm_ssyms.q_dot) #body velcity for uv and joint velocity for arm
         self.uvms_acc = vertcat(self.fb_ssyms.a_uv, self.arm_ssyms.q_ddot) #body acceleration for uv and joint acceleration for arm
