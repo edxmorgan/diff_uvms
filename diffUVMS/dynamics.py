@@ -335,7 +335,7 @@ class RobotDynamics():
 
         v0 = cs.SX.zeros(6, 1)
         ag = cs.SX.zeros(6, 1)
-        ag[5] = -gravity
+        # ag[5] = gravity
         # FORWARD ITERATION
         for i in range(0, n_joints):
             self.Ic_i.append(Ic[i])
@@ -514,7 +514,7 @@ class RobotDynamics():
         sys['ode'] = rhs 
 
         intg = cs.integrator('intg', 'rk', sys, 0, 1, {
-                            'simplify': True, 'number_of_finite_elements': 30})
+                            'simplify': True, 'number_of_finite_elements': 50})
         
         u_checks = copy.deepcopy(u)
         states_checks = copy.deepcopy(states)
