@@ -335,6 +335,7 @@ class RobotDynamics():
 
         v0 = cs.SX.zeros(6, 1)
         ag = cs.SX.zeros(6, 1)
+        ag[5] = -gravity
         # FORWARD ITERATION
         for i in range(0, n_joints):
             self.Ic_i.append(Ic[i])
