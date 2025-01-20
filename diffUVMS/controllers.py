@@ -17,13 +17,16 @@ class RobotControllers():
         err = self.arm_ssyms.q - self.arm_ssyms.qref
 
         # Compute the P control output
-        p_controller = -cs.diag(self.arm_ssyms.Kp)@err - cs.diag(self.arm_ssyms.Kd)@self.arm_ssyms.q_dot
+        p_controller = -cs.diag(self.arm_ssyms.Kp)@err - cs.diag(self.arm_ssyms.Kd)@self.arm_ssyms.q_dot 
 
         # Apply the limit to the control output
         limited_pd_controller = cs.fmin(cs.fmax(p_controller, self.arm_ssyms.u_min), self.arm_ssyms.u_max)
 
         p = cs.Function('pid', 
-                           [self.arm_ssyms.q, self.arm_ssyms.q_dot, self.arm_ssyms.qref, self.arm_ssyms.Kp, self.arm_ssyms.Kd, self.arm_ssyms.u_max, self.arm_ssyms.u_min],
+                           [self.arm_ssyms.q, self.arm_ssyms.q_dot, self.arm_ssyms.qref, self.arm_ssyms.Kp, 
+                            self.arm_ssyms.Ki, self.arm_ssyms.Kd,
+                             self.arm_ssyms.sum_e_buffer, self.arm_ssyms.dt,
+                              self.arm_ssyms.u_max, self.arm_ssyms.u_min],
                              [limited_pd_controller, err])
 
         return p
@@ -53,7 +56,7 @@ class RobotControllers():
                            [self.uvms_ssyms.n, self.uvms_ssyms.uvms_vel, self.uvms_ssyms.nref, gn, J_n, 
                             self.uvms_ssyms.Kp, self.uvms_ssyms.Ki, self.uvms_ssyms.Kd,
                             self.uvms_ssyms.sum_e_buffer, self.uvms_ssyms.dt,
-                            self.uvms_ssyms.u_min, self.uvms_ssyms.u_max],
+                            self.uvms_ssyms.u_max, self.uvms_ssyms.u_min],
                              [limited_pd_controller, i_buffer])
         
         return controller

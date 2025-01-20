@@ -34,12 +34,12 @@ class Params:
     joint_limits = list(zip(joint_min.tolist(), joint_max.tolist()))
     joint_limits_configurations = np.array(list(itertools.product(*joint_limits)))
 
-    u_min = np.array([-2.83664, -0.629139, -0.518764, -0.54])
-    u_max = np.array([2.83664, 0.629139, 0.518764, 0.54]) 
-
-    Kp = cs.vertcat(15.0, 15.0, 20.0, 15.0)
-    Ki = cs.vertcat(0.01, 0.01, 0.01, 0.01)
-    Kd = cs.vertcat(0.1, 0.1, 0.1, 0.1)
+    u_min = np.array([-1.4, -0.629139, -0.518764, -0.54])
+    u_max = np.array([1.4, 0.629139, 0.518764, 0.54])
+    
+    Kp = cs.vertcat(1.0, 1.0, 1.0, 1.0)
+    Ki = cs.vertcat(1e-3, 1e-3, 1e-3, 1e-3)
+    Kd = cs.vertcat(1e-3, 1e-3, 1e-3, 1e-3)
 
     # rho = 1 #kg/L
 
@@ -84,18 +84,18 @@ class Params:
 
     # reducing model parameters by assuming non rotating axis are inertialess or inactivity
     Gear_p = cs.vertcat(2253.54, 2253.54, 2253.54, 340.4)
-    rigid_p0 = cs.vertcat( 1e-05, 1e-05, 1e-05, 1e-05, 
+    rigid_p0 = cs.vertcat( 1e-06, 1e-06, 1e-06, 1e-06, 
                             0.0, 0.0, 0.0, 0.0, 
-                            3.0, 2.3, 2.2, 0.3, 
+                            2.5, 2.6, 1.7, 0.2,
                             0.0, 0.0, 0.0, 0.0,
-                            3.0, 1.8, 1.0, 1.15)
-
+                            4.0, 1.9, 1.3, 1.0)
+                                                      
     sim_p = cs.vertcat(Gear_p, rigid_p0).full()
 
     base_T0 = [3.142, 0.000, 0.000, 0.140, 0.000, -0.120] #transformation of uv body frame to manipulator base
 
-    sim_n = 100 # time horizon
-    delta_t = 0.05
+    sim_n = 400 # time horizon
+    delta_t = 0.035
     N = int(sim_n/delta_t) # number of control intervals
 
     # trivial_sim_p = [0, 0, 0 , 0, 0, 0, 0]

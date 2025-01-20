@@ -3,6 +3,7 @@ from casadi import SX,  vertcat
 class construct_manipulator_syms():
     def __init__(self, n_joints):
         self.n_joints = n_joints
+
         self.joint_configurations = SX.sym('joint_configs', 2**n_joints, n_joints)
         self.m_u = SX.sym("m_u", n_joints)
 
@@ -63,7 +64,7 @@ class construct_manipulator_syms():
                                        self.Ir[2][6], self.Ir[1][10], self.Ir[1][8], 
                                        self.Ir[1][6])
         
-  
+        self.dt = SX.sym("dt")
         self.sim_p = vertcat(self.m_rigid_body_p)
         self.Kp = SX.sym('Kp',self.n_joints)
         self.Kd = SX.sym('Kd',self.n_joints)
