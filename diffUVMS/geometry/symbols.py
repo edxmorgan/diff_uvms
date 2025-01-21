@@ -188,8 +188,8 @@ class construct_uvms_syms():
         self.fb_ssyms = construct_vehicle_syms() #floating base symbols
         self.total_dof = self.fb_ssyms.uv_dof+ self.arm_ssyms.n_joints
 
-        self.ul = vertcat(self.fb_ssyms.p_max , self.arm_ssyms.q_max) # upper limits of robot generalized coordinates
         self.ll = vertcat(self.fb_ssyms.p_min , self.arm_ssyms.q_min) # lower limits of robot generalized coordinates
+        self.ul = vertcat(self.fb_ssyms.p_max , self.arm_ssyms.q_max) # upper limits of robot generalized coordinates
 
         self.k0 = SX.sym('k0', self.total_dof) # secondary task rate
 

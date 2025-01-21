@@ -109,6 +109,9 @@ class Params:
 
     u_min = np.array([-10, -10, -10, -10, -10, -10])
     u_max = np.array([10, 10, 10, 10, 10, 10])
+
+    pose_min = np.array([-100, -100, -100, -0.26, -0.35, -2*np.pi*100])
+    pose_max = np.array([100, 100, 100, 0.26, 0.35, 2*np.pi*100])
     
     sim_p = np.concatenate(( np.array([m]) , np.array([W]), np.array([B]), 
                                            rg, rb, Io, added_m, coupl_added_m, linear_dc, quadratic_dc, v_flow))

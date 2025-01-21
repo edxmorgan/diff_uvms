@@ -566,4 +566,4 @@ class RobotDynamics():
         x_next = res['xf']
 
         # use a dict here
-        return x_next, rhs_xdd, states, u, self.sys_syms.dt, self.arm_ssyms.q_min, self.arm_ssyms.q_max, self.arm_ssyms.sim_p, self.fb_ssyms.sim_p, base_T, states_checks, u_checks
+        return x_next, rhs_xdd, states, u, self.sys_syms.dt, self.sys_syms.ll, self.sys_syms.ul, self.arm_ssyms.sim_p, self.fb_ssyms.sim_p, base_T, states_checks, u_checks

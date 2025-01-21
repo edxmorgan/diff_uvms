@@ -28,7 +28,7 @@ class Params:
 
     relative_urdf_path = f"/resources/urdf/alpha_5_robot.urdf"
 
-    joint_min = np.array([0.00, 1.50, 0.10, 0.10])
+    joint_min = np.array([1.00, 0.01, 0.01, 0.01])
     joint_max = np.array([5.50, 3.40, 3.40, 5.70])
 
     joint_limits = list(zip(joint_min.tolist(), joint_max.tolist()))
@@ -94,7 +94,7 @@ class Params:
 
     base_T0 = [3.142, 0.000, 0.000, 0.140, 0.000, -0.120] #transformation of uv body frame to manipulator base
 
-    sim_n = 400 # time horizon
+    sim_n = 100 # time horizon
     delta_t = 0.035
     N = int(sim_n/delta_t) # number of control intervals
 
