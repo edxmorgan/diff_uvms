@@ -100,6 +100,24 @@ class RobotDynamics():
                                                                                                        f_ext)
         return ID_exp
     
+    def get_base_forces(self, gravity=9.81):
+        """Returns the inverse dynamics as a casadi expression."""
+        q = self.arm_ssyms.q
+        q_dot = self.arm_ssyms.q_dot
+        q_ddot = self.arm_ssyms.q_ddot
+        fw_static, fw_viscous = self.arm_ssyms.fw_static, self.arm_ssyms.fw_viscous
+        bw_static, bw_viscous = self.arm_ssyms.bw_static, self.arm_ssyms.bw_viscous
+        f_ext=None
+        [f, fR, tau_gear, ID_exp, Si, i_X_p, i_X_0s, v, a, Ic, f_base, friction] = self.solves_rnea(q,
+                                                                                                       q_dot,
+                                                                                                       q_ddot,
+                                                                                                       fw_static,
+                                                                                                       fw_viscous,
+                                                                                                       bw_static, 
+                                                                                                       bw_viscous,
+                                                                                                       gravity,
+                                                                                                       f_ext)
+        return f_base
 
     def get_bias_force(self, gravity=9.81):
         """Returns the Coriolis vector as a casadi expression."""
@@ -450,7 +468,7 @@ class RobotDynamics():
         rhs_xd = xd*self.arm_ssyms.dt
         rhs_xdd = ode_xdd*self.arm_ssyms.dt
         rhs = cs.vertcat(rhs_xd, rhs_xdd)  # the complete ODE vector with Time scaling
-        
+
         # integrator to discretize the system
         sys = {}
         sys['x'] = states
