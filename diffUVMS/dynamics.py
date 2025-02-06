@@ -398,10 +398,9 @@ class RobotDynamics():
                 f_withoutR[i-1] += i_X_p[i].T @ f_withoutR[i]
             else:
                 # i_x_0b = plucker.spatial_mtimes(i_X_p[i],self.T_Base) # validate
-                # p_X_i_f = plucker.inverse_spatial_transform(i_x_0b).T
+                # p_X_i_f = plucker.inverse_spatial_transform(self.T_Base).T
                 # F_base = p_X_i_f@f[i] + p_X_i_f@fR[i]
 
-                # F_base = f[0] + fR[0]
                 F_base = self.T_Base.T @ (f[0] + fR[0])
         
         F_base = cs.substitute(F_base, self.arm_ssyms.trivial_sim_p, cs.DM([0]*self.arm_ssyms.trivial_sim_p.size1()))
