@@ -479,27 +479,27 @@ class RobotDynamics():
         u_checks = copy.deepcopy(u)
         states_checks = copy.deepcopy(states)
 
-        # for j in range(self.arm_ssyms.n_joints):
-        #     u_checks[j] = cs.if_else(
-        #         cs.logic_or(
-        #             # If states[j] is already too low AND commanded force is negative ...
-        #             cs.logic_and(states[j] <= self.arm_ssyms.q_min[j], u[j]<0 ),
-        #             # ... OR if states[j] is already too high AND commanded force is positive
-        #             cs.logic_and(states[j] >= self.arm_ssyms.q_max[j], u[j]>0 )
-        #             ),
-        #             0, # clamp to zero if either of the above conditions hold
-        #             u[j] # otherwise leave as is
-        #             )
+        for j in range(self.arm_ssyms.n_joints):
+            u_checks[j] = cs.if_else(
+                cs.logic_or(
+                    # If states[j] is already too low AND commanded force is negative ...
+                    cs.logic_and(states[j] <= self.arm_ssyms.q_min[j], u[j]<0 ),
+                    # ... OR if states[j] is already too high AND commanded force is positive
+                    cs.logic_and(states[j] >= self.arm_ssyms.q_max[j], u[j]>0 )
+                    ),
+                    0, # clamp to zero if either of the above conditions hold
+                    u[j] # otherwise leave as is
+                    )
 
-        #     states_checks[j+4] = cs.if_else(
-        #         cs.logic_or(
-        #             cs.logic_and(states[j] <= self.arm_ssyms.q_min[j], states[j+4]<0), 
-        #             cs.logic_and(states[j] >= self.arm_ssyms.q_max[j], states[j+4]>0)
-        #             ),
-        #             0,
-        #             states[j+4]
-        #             )
-        #     states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.arm_ssyms.q_min), self.arm_ssyms.q_max)
+            states_checks[j+4] = cs.if_else(
+                cs.logic_or(
+                    cs.logic_and(states[j] <= self.arm_ssyms.q_min[j], states[j+4]<0), 
+                    cs.logic_and(states[j] >= self.arm_ssyms.q_max[j], states[j+4]>0)
+                    ),
+                    0,
+                    states[j+4]
+                    )
+            states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.arm_ssyms.q_min), self.arm_ssyms.q_max)
        
 
         res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.arm_ssyms.base_T, self.arm_ssyms.gravity, self.arm_ssyms.dt))  # evaluate with symbols
