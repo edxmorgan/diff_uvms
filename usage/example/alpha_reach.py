@@ -92,6 +92,8 @@ class Params:
                                                       
     sim_p = cs.vertcat(Gear_p, rigid_p0).full()
 
+    gravity = -9.81
+    base_gravity = 9.81
     base_T0 = [3.142, 0.000, 0.000, 0.140, 0.000, -0.120] #transformation of uv body frame to manipulator base
 
     sim_n = 100 # time horizon

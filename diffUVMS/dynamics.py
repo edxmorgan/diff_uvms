@@ -81,7 +81,7 @@ class RobotDynamics():
         i_X_0s.append(forward_kin)
         return i_X_p, i_X_0s
 
-    def get_inverse_dynamics_rnea(self, gravity=9.81):
+    def get_inverse_dynamics_rnea(self):
         """Returns the inverse dynamics as a casadi expression."""
         q = self.arm_ssyms.q
         q_dot = self.arm_ssyms.q_dot
@@ -96,11 +96,10 @@ class RobotDynamics():
                                                                                                        fw_viscous,
                                                                                                        bw_static, 
                                                                                                        bw_viscous,
-                                                                                                       gravity,
                                                                                                        f_ext)
         return ID_exp
     
-    def get_base_forces(self, gravity=9.81):
+    def get_base_forces(self):
         """Returns the inverse dynamics as a casadi expression."""
         q = self.arm_ssyms.q
         q_dot = self.arm_ssyms.q_dot
@@ -115,18 +114,16 @@ class RobotDynamics():
                                                                                                        fw_viscous,
                                                                                                        bw_static, 
                                                                                                        bw_viscous,
-                                                                                                       gravity,
                                                                                                        f_ext)
         return f_base
 
-    def get_bias_force(self, gravity=9.81):
+    def get_bias_force(self):
         """Returns the Coriolis vector as a casadi expression."""
         q = self.arm_ssyms.q
         q_dot = self.arm_ssyms.q_dot
         q_ddot = [0]*self.n_joints
         fw_static, fw_viscous = self.arm_ssyms.fw_static, self.arm_ssyms.fw_viscous
         bw_static, bw_viscous = self.arm_ssyms.bw_static, self.arm_ssyms.bw_viscous
-        gravity = gravity
         f_ext=None
         [f, fR, tau_gear, C, Si, i_X_p, i_X_0s, v, a, Ic, C_f_base, friction] = self.solves_rnea(q,
                                                                                 q_dot,
@@ -135,15 +132,14 @@ class RobotDynamics():
                                                                                 fw_viscous,
                                                                                 bw_static, 
                                                                                 bw_viscous,
-                                                                                gravity,
                                                                                 f_ext)
         return C
 
-    def get_inertia_matrix(self, gravity=9.81):
-        ID_exp = self.get_inverse_dynamics_rnea(gravity=gravity)
+    def get_inertia_matrix(self):
+        ID_exp = self.get_inverse_dynamics_rnea()
         ddX = self.arm_ssyms.q_ddot
 
-        C = self.get_bias_force(gravity)
+        C = self.get_bias_force()
 
         n = ID_exp.size1()
         ID_delta = ID_exp - C
@@ -286,7 +282,7 @@ class RobotDynamics():
                     # spatial_inertia = prev_inertia + \
                     #     inertia_transform.T@spatial_inertia@plucker.inverse_spatial_transform(
                     #         inertia_transform)
-                    
+
                     spatial_inertia = prev_inertia + cs.mtimes(
                         inertia_transform.T,
                         cs.mtimes(spatial_inertia, inertia_transform))
@@ -300,7 +296,7 @@ class RobotDynamics():
         
         return self.i_X_p, self.tip_offset, self.Sis, self.spatial_inertias, self.link_coms, self.link_masses
 
-    def solves_rnea(self, q, q_dot, q_ddot, fw_static, fw_viscous, bw_static, bw_viscous, gravity=9.81, f_ext=None):
+    def solves_rnea(self, q, q_dot, q_ddot, fw_static, fw_viscous, bw_static, bw_viscous, f_ext=None):
         """Returns recursive newton euler algorithm."""
         if self.parser.robot_desc_backup is None:
             raise ValueError('Robot description not loaded from urdf')
@@ -316,6 +312,7 @@ class RobotDynamics():
         i_X_0s = []
         v = []
         vR = []
+        g_fb = []
         a = []
         aR = []
         f = []
@@ -327,8 +324,10 @@ class RobotDynamics():
         F_base = cs.SX.zeros(6, 1)
 
         v0 = cs.SX.zeros(6, 1)
+        a0 = cs.SX.zeros(6, 1)
+
         ag = cs.SX.zeros(6, 1)
-        ag[5] = gravity
+        ag[5] = self.arm_ssyms.gravity
         # FORWARD ITERATION
         for i in range(0, n_joints):
             if i != 0:
@@ -336,12 +335,9 @@ class RobotDynamics():
                 v0 = i_X_p[i]@v[i-1]
                 a0 = i_X_p[i]@a[i-1]
             else:
-                i_X_0 = plucker.spatial_mtimes(i_X_p[i],self.T_Base)
+                i_X_0 = i_X_p[0]
                 v0 = i_X_0@v0
                 a0 = i_X_0@ag
-
-                    
-            i_X_0s.append(i_X_0)  # transformation of origin 0 to joint i
 
             vJ = Si[i]@q_dot[i]
             v.append(v0 + vJ)  # body i velocity
@@ -354,7 +350,7 @@ class RobotDynamics():
             _fb = Ic[i]@a[i] + vi_xf@Ic[i]@v[i]  # body i forces
 
             # body force + hydrodynamics calculated
-            # _fb = self._apply_body_link_hydrodynamics(i, _fb, v, a, Icom, Im, i_X_0, gravity)
+            # _fb = self._apply_body_link_hydrodynamics(i, _fb, v, a, Icom, Im, i_X_0)
 
             # other external forces
             # if f_ext is not None:
@@ -364,8 +360,8 @@ class RobotDynamics():
             f_withoutR.append(_fb)
 
             # rotor dynamics
-            vRJ = Si[i]@G[i]@q_dot[i]  # rotor i velocity
-            aRJ = Si[i]@G[i]@q_ddot[i]
+            vRJ = Si[i]*(G[i]*q_dot[i]) # rotor i velocity
+            aRJ = Si[i]*(G[i]*q_ddot[i])
             vRi_x = plucker.motion_cross_product(vRJ)
             aR.append(aRJ + vRi_x@vRJ)  # rotor i acceleration
 
@@ -376,7 +372,7 @@ class RobotDynamics():
             
         # BACKWARD ITERATION
         for i in range(n_joints - 1, -1, -1):
-            tau_gear[i] = Si[i].T @ f[i]
+            tau_gear[i] = Si[i].T @ (f[i])
 
             # Calculate joint friction
             static_friction_coeff = self.parameter_pick(
@@ -392,16 +388,13 @@ class RobotDynamics():
             if i != 0:
                 # p_X_i_f = plucker.inverse_spatial_transform(i_X_p[i]).T
                 # f[i-1] = f[i-1] + p_X_i_f@f[i] + p_X_i_f@fR[i]
-                f[i-1] += i_X_p[i].T @ (f[i] + fR[i])
-
                 # f_withoutR[i-1] = f_withoutR[i-1] + p_X_i_f@f_withoutR[i]
-                f_withoutR[i-1] += i_X_p[i].T @ f_withoutR[i]
+                f[i-1] += i_X_p[i].T @ (f[i] + fR[i])
             else:
-                # i_x_0b = plucker.spatial_mtimes(i_X_p[i],self.T_Base) # validate
-                # p_X_i_f = plucker.inverse_spatial_transform(self.T_Base).T
-                # F_base = p_X_i_f@f[i] + p_X_i_f@fR[i]
-
-                F_base = self.T_Base.T @ (f[0] + fR[0])
+                i_x_0b = plucker.spatial_mtimes(i_X_p[i],self.T_Base) # validate
+                # p_X_i_f = plucker.inverse_spatial_transform(i_x_0b).T
+                # F_base = p_X_i_f@f_withoutR[i] + p_X_i_f@fR[i]
+                F_base = i_x_0b.T @  (f[i] + fR[i])
         
         F_base = cs.substitute(F_base, self.arm_ssyms.trivial_sim_p, cs.DM([0]*self.arm_ssyms.trivial_sim_p.size1()))
         tau_motor = cs.substitute(tau_motor, self.arm_ssyms.trivial_sim_p, cs.DM([0]*self.arm_ssyms.trivial_sim_p.size1()))
@@ -418,7 +411,7 @@ class RobotDynamics():
         _fb -= f_i_X_0@_external_f
         return _fb
 
-    # def _apply_body_link_hydrodynamics(self, i, _fb, v, v_dot, Icom, Im, _i_X_0, gravity):
+    # def _apply_body_link_hydrodynamics(self, i, _fb, v, v_dot, Icom, Im, _i_X_0):
     #     # i is the link index
     #     # v is the link body velocity vector of size 6
     #     # v_dot is the link body acceleration vector of size 6
@@ -457,10 +450,10 @@ class RobotDynamics():
     #     _fb -= M_A@v_dot[i] + C_A@v[i] + D_v@v[i] + spatial_restoring_force
     #     return _fb
 
-    def forward_dynamics(self, gravity=9.81):
+    def forward_dynamics(self):
         # uvms bias force and Inertia
-        C = self.get_bias_force(gravity)
-        H = self.get_inertia_matrix(gravity)
+        C = self.get_bias_force()
+        H = self.get_inertia_matrix()
 
         xd = self.arm_ssyms.q_dot
         u = self.arm_ssyms.m_u
@@ -477,7 +470,7 @@ class RobotDynamics():
         sys = {}
         sys['x'] = states
         sys['u'] = u
-        sys['p'] = cs.vertcat(parameters, self.arm_ssyms.base_T, self.arm_ssyms.dt)
+        sys['p'] = cs.vertcat(parameters, self.arm_ssyms.base_T, self.arm_ssyms.gravity, self.arm_ssyms.dt)
         sys['ode'] = rhs 
 
         intg = cs.integrator('intg', 'rk', sys, 0, 1, {
@@ -486,30 +479,30 @@ class RobotDynamics():
         u_checks = copy.deepcopy(u)
         states_checks = copy.deepcopy(states)
 
-        for j in range(self.arm_ssyms.n_joints):
-            u_checks[j] = cs.if_else(
-                cs.logic_or(
-                    # If states[j] is already too low AND commanded force is negative ...
-                    cs.logic_and(states[j] <= self.arm_ssyms.q_min[j], u[j]<0 ),
-                    # ... OR if states[j] is already too high AND commanded force is positive
-                    cs.logic_and(states[j] >= self.arm_ssyms.q_max[j], u[j]>0 )
-                    ),
-                    0, # clamp to zero if either of the above conditions hold
-                    u[j] # otherwise leave as is
-                    )
+        # for j in range(self.arm_ssyms.n_joints):
+        #     u_checks[j] = cs.if_else(
+        #         cs.logic_or(
+        #             # If states[j] is already too low AND commanded force is negative ...
+        #             cs.logic_and(states[j] <= self.arm_ssyms.q_min[j], u[j]<0 ),
+        #             # ... OR if states[j] is already too high AND commanded force is positive
+        #             cs.logic_and(states[j] >= self.arm_ssyms.q_max[j], u[j]>0 )
+        #             ),
+        #             0, # clamp to zero if either of the above conditions hold
+        #             u[j] # otherwise leave as is
+        #             )
 
-            states_checks[j+4] = cs.if_else(
-                cs.logic_or(
-                    cs.logic_and(states[j] <= self.arm_ssyms.q_min[j], states[j+4]<0), 
-                    cs.logic_and(states[j] >= self.arm_ssyms.q_max[j], states[j+4]>0)
-                    ),
-                    0,
-                    states[j+4]
-                    )
-            states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.arm_ssyms.q_min), self.arm_ssyms.q_max)
+        #     states_checks[j+4] = cs.if_else(
+        #         cs.logic_or(
+        #             cs.logic_and(states[j] <= self.arm_ssyms.q_min[j], states[j+4]<0), 
+        #             cs.logic_and(states[j] >= self.arm_ssyms.q_max[j], states[j+4]>0)
+        #             ),
+        #             0,
+        #             states[j+4]
+        #             )
+        #     states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.arm_ssyms.q_min), self.arm_ssyms.q_max)
        
 
-        res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.arm_ssyms.base_T, self.arm_ssyms.dt))  # evaluate with symbols
+        res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.arm_ssyms.base_T, self.arm_ssyms.gravity, self.arm_ssyms.dt))  # evaluate with symbols
         x_next = res['xf']
 
         # use a dict here
