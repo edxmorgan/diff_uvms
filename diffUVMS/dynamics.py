@@ -283,10 +283,14 @@ class RobotDynamics():
 
                 if prev_joint == "fixed":
                     # print('found fixed')
-                    spatial_inertia = prev_inertia + \
-                        inertia_transform.T@spatial_inertia@plucker.inverse_spatial_transform(
-                            inertia_transform)
-
+                    # spatial_inertia = prev_inertia + \
+                    #     inertia_transform.T@spatial_inertia@plucker.inverse_spatial_transform(
+                    #         inertia_transform)
+                    
+                    spatial_inertia = prev_inertia + cs.mtimes(
+                        inertia_transform.T,
+                        cs.mtimes(spatial_inertia, inertia_transform))
+                    
                 if link.name == self.tip:
                     # print('is tip')
                     # print(f"{link.name} link added")
@@ -317,7 +321,6 @@ class RobotDynamics():
         f = []
         f_withoutR = []
         fR = []
-        self.Ic_i = [] # composite rigid body inertias
         fRIC = cs.SX.zeros(n_joints)
         tau_gear = cs.SX.zeros(n_joints)
         tau_motor = cs.SX.zeros(n_joints)
@@ -325,10 +328,9 @@ class RobotDynamics():
 
         v0 = cs.SX.zeros(6, 1)
         ag = cs.SX.zeros(6, 1)
-        # ag[5] = gravity
+        ag[5] = gravity
         # FORWARD ITERATION
         for i in range(0, n_joints):
-            self.Ic_i.append(Ic[i])
             if i != 0:
                 i_X_0 = plucker.spatial_mtimes(i_X_p[i],i_X_0)
                 v0 = i_X_p[i]@v[i-1]
@@ -373,8 +375,8 @@ class RobotDynamics():
             fR.append(_fR)
             
         # BACKWARD ITERATION
-        for i in range(n_joints-1, -1, -1):
-            tau_gear[i] = Si[i].T@f[i]
+        for i in range(n_joints - 1, -1, -1):
+            tau_gear[i] = Si[i].T @ f[i]
 
             # Calculate joint friction
             static_friction_coeff = self.parameter_pick(
@@ -388,16 +390,19 @@ class RobotDynamics():
             tau_motor[i] = (tau_gear[i]/G[i]) + Si[i].T@fR[i] + fRIC[i]
             # print(i)
             if i != 0:
-                p_X_i_f = plucker.inverse_spatial_transform(i_X_p[i]).T
-                f[i-1] = f[i-1] + p_X_i_f@f[i] + p_X_i_f@fR[i]
+                # p_X_i_f = plucker.inverse_spatial_transform(i_X_p[i]).T
+                # f[i-1] = f[i-1] + p_X_i_f@f[i] + p_X_i_f@fR[i]
+                f[i-1] += i_X_p[i].T @ (f[i] + fR[i])
 
-                f_withoutR[i-1] = f_withoutR[i-1] + p_X_i_f@f_withoutR[i]
-
-                self.Ic_i[i-1] = self.Ic_i[i-1] + p_X_i_f@self.Ic_i[i]@i_X_p[i]
+                # f_withoutR[i-1] = f_withoutR[i-1] + p_X_i_f@f_withoutR[i]
+                f_withoutR[i-1] += i_X_p[i].T @ f_withoutR[i]
             else:
-                i_x_0b = plucker.spatial_mtimes(i_X_p[i],self.T_Base) # validate
-                p_X_i_f = plucker.inverse_spatial_transform(i_x_0b).T
-                F_base = p_X_i_f@f[i] + p_X_i_f@fR[i]
+                # i_x_0b = plucker.spatial_mtimes(i_X_p[i],self.T_Base) # validate
+                # p_X_i_f = plucker.inverse_spatial_transform(i_x_0b).T
+                # F_base = p_X_i_f@f[i] + p_X_i_f@fR[i]
+
+                # F_base = f[0] + fR[0]
+                F_base = self.T_Base.T @ (f[0] + fR[0])
         
         F_base = cs.substitute(F_base, self.arm_ssyms.trivial_sim_p, cs.DM([0]*self.arm_ssyms.trivial_sim_p.size1()))
         tau_motor = cs.substitute(tau_motor, self.arm_ssyms.trivial_sim_p, cs.DM([0]*self.arm_ssyms.trivial_sim_p.size1()))
@@ -473,7 +478,7 @@ class RobotDynamics():
         sys = {}
         sys['x'] = states
         sys['u'] = u
-        sys['p'] = cs.vertcat(parameters, self.arm_ssyms.dt)
+        sys['p'] = cs.vertcat(parameters, self.arm_ssyms.base_T, self.arm_ssyms.dt)
         sys['ode'] = rhs 
 
         intg = cs.integrator('intg', 'rk', sys, 0, 1, {
@@ -505,7 +510,7 @@ class RobotDynamics():
             states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.arm_ssyms.q_min), self.arm_ssyms.q_max)
        
 
-        res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.arm_ssyms.dt))  # evaluate with symbols
+        res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.arm_ssyms.base_T, self.arm_ssyms.dt))  # evaluate with symbols
         x_next = res['xf']
 
         # use a dict here

@@ -182,21 +182,40 @@ def extractEr(i_X_p):
     rx = -E0.T@_Er_x
     return E0, E4, rx
 
+# def inverse_spatial_transform_new(X):
+#     """
+#     Given a 6x6 rigid-body motion transform X = i_X_p,
+#     return its inverse p_X_i.
+#     """
+#     # Rotation:
+#     R = X[:3, :3]
+#     R_T = R.T
 
-def inverse_spatial_transform(i_X_p):
-    "Returns p_X_i_"
-    E0 = i_X_p[:3,:3]
-    E4 = i_X_p[3:,3:] #E0 == E4
-    Er_x = -i_X_p[3:,:3]
+#     # 'Bottom-left' 3x3 block, often called M or S:
+#     M = X[3:, :3]
 
-    p_X_i = SX.zeros(6, 6)
-    E_T = E0.T
-    p_X_i[:3,:3] = E_T
-    p_X_i[3:,3:] = E_T
+#     X_inv = SX.zeros(6, 6)
+#     X_inv[:3, :3]   = R_T
+#     X_inv[3:, 3:]   = R_T
+#     X_inv[3:, :3]   = - R_T @ M
 
-    r_x_E_T = Er_x.T
-    p_X_i[3:,:3] = r_x_E_T
-    return p_X_i
+#     return X_inv
+
+
+# def inverse_spatial_transform(i_X_p):
+#     "Returns p_X_i_"
+#     E0 = i_X_p[:3,:3]
+#     E4 = i_X_p[3:,3:] #E0 == E4
+#     Er_x = -i_X_p[3:,:3]
+
+#     p_X_i = SX.zeros(6, 6)
+#     E_T = E0.T
+#     p_X_i[:3,:3] = E_T
+#     p_X_i[3:,3:] = E_T
+
+#     r_x_E_T = Er_x.T
+#     p_X_i[3:,:3] = r_x_E_T
+#     return p_X_i
 
     
 
