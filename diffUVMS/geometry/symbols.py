@@ -16,6 +16,8 @@ class construct_manipulator_syms():
         self.q_dot = SX.sym("q_dot", n_joints)
         self.q_ddot = SX.sym("q_ddot", n_joints)
 
+        self.noise = SX.sym("nosie", n_joints)
+
         self.G = SX.sym('G', n_joints) # gear ratio
 
         self.fw_viscous = SX.sym('fw_viscous', n_joints) # forward motion viscous friction coefficient

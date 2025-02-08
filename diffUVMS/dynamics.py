@@ -100,22 +100,70 @@ class RobotDynamics():
         return ID_exp
     
     def get_base_forces(self):
-        """Returns the inverse dynamics as a casadi expression."""
+        """
+        Returns the base forces as a casadi expression, **with** the same clamp logic
+        that is used in the forward dynamics integrator.
+        """
+        # Symbolic variables
         q = self.arm_ssyms.q
         q_dot = self.arm_ssyms.q_dot
         q_ddot = self.arm_ssyms.q_ddot
         fw_static, fw_viscous = self.arm_ssyms.fw_static, self.arm_ssyms.fw_viscous
         bw_static, bw_viscous = self.arm_ssyms.bw_static, self.arm_ssyms.bw_viscous
-        f_ext=None
-        [f, fR, tau_gear, ID_exp, Si, i_X_p, i_X_0s, v, a, Ic, f_base, friction] = self.solves_rnea(q,
-                                                                                                       q_dot,
-                                                                                                       q_ddot,
-                                                                                                       fw_static,
-                                                                                                       fw_viscous,
-                                                                                                       bw_static, 
-                                                                                                       bw_viscous,
-                                                                                                       f_ext)
+
+        # ------------------------------------------------------------------
+        # 1) Apply your clamp logic to q_dot if joints are at the position limit
+        # ------------------------------------------------------------------
+        q_clamped = cs.SX.zeros(self.n_joints, 1)
+        qd_clamped = cs.SX.zeros(self.n_joints, 1)
+        qdd_clamped = cs.SX.zeros(self.n_joints, 1)
+
+        for j in range(self.n_joints):
+            # Keep q as is, or optionally clamp it with fmax/fmin
+            q_clamped[j] = cs.fmin(cs.fmax(q[j], self.arm_ssyms.q_min[j]), self.arm_ssyms.q_max[j])
+            
+            # If q is at the lower limit AND velocity is negative -> zero it out
+            # Or if q is at the upper limit AND velocity is positive -> zero it out
+            qd_clamped[j] = cs.if_else(
+                cs.logic_or(
+                    cs.logic_and(q_clamped[j] <= self.arm_ssyms.q_min[j], q_dot[j] < 0),
+                    cs.logic_and(q_clamped[j] >= self.arm_ssyms.q_max[j], q_dot[j] > 0),
+                ),
+                0,         # clamp velocity
+                q_dot[j]   # keep as is
+            )
+
+            # qdd_clamped[j] = cs.if_else(
+            #         cs.logic_or(
+            #             # If states[j] is already too low AND commanded force is negative ...
+            #             cs.logic_and(q_clamped[j] <= self.arm_ssyms.q_min[j], q_dot[j]<0 ),
+            #             # ... OR if states[j] is already too high AND commanded force is positive
+            #             cs.logic_and(q_clamped[j] >= self.arm_ssyms.q_max[j], q_dot[j]>0 )
+            #             ),
+            #             0, # clamp to zero if either of the above conditions hold
+            #             q_ddot[j] # otherwise leave as is
+            #             )
+
+        # ------------------------------------------------------------------
+        # 2) Now call solves_rnea with the clamped states
+        # ------------------------------------------------------------------
+        f_ext = None
+        [f, fR, tau_gear, ID_exp, Si, i_X_p, i_X_0s, v, a, Ic, f_base, friction] = self.solves_rnea(
+            q_clamped,           # pass in clamped q
+            qd_clamped,          # pass in clamped q_dot
+            q_ddot,
+            fw_static,
+            fw_viscous,
+            bw_static,
+            bw_viscous,
+            f_ext
+        )
+
+        # f_base should now reflect the same clamp logic that was used to "freeze" the joints 
+        # that are pinned at their limits.
+
         return f_base
+
 
     def get_bias_force(self):
         """Returns the Coriolis vector as a casadi expression."""
@@ -335,7 +383,7 @@ class RobotDynamics():
                 v0 = i_X_p[i]@v[i-1]
                 a0 = i_X_p[i]@a[i-1]
             else:
-                i_X_0 = i_X_p[0]
+                i_X_0 = i_X_p[i]
                 v0 = i_X_0@v0
                 a0 = i_X_0@ag
 
@@ -463,18 +511,19 @@ class RobotDynamics():
         ode_xdd = cs.solve(H, u - C)
 
         rhs_xd = xd*self.arm_ssyms.dt
-        rhs_xdd = ode_xdd*self.arm_ssyms.dt
+        rhs_xdd = ode_xdd*self.arm_ssyms.dt + self.arm_ssyms.noise
+
         rhs = cs.vertcat(rhs_xd, rhs_xdd)  # the complete ODE vector with Time scaling
 
         # integrator to discretize the system
         sys = {}
         sys['x'] = states
         sys['u'] = u
-        sys['p'] = cs.vertcat(parameters, self.arm_ssyms.base_T, self.arm_ssyms.gravity, self.arm_ssyms.dt)
+        sys['p'] = cs.vertcat(parameters, self.arm_ssyms.base_T, self.arm_ssyms.gravity, self.arm_ssyms.dt, self.arm_ssyms.noise)
         sys['ode'] = rhs 
 
         intg = cs.integrator('intg', 'rk', sys, 0, 1, {
-                            'simplify': True, 'number_of_finite_elements': 50})
+                            'simplify': True, 'number_of_finite_elements': 100})
         
         u_checks = copy.deepcopy(u)
         states_checks = copy.deepcopy(states)
@@ -502,7 +551,7 @@ class RobotDynamics():
             states_checks[0:4] = cs.fmin(cs.fmax(states[0:4], self.arm_ssyms.q_min), self.arm_ssyms.q_max)
        
 
-        res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.arm_ssyms.base_T, self.arm_ssyms.gravity, self.arm_ssyms.dt))  # evaluate with symbols
+        res = intg(x0=states_checks, u=u_checks, p=cs.vertcat(parameters, self.arm_ssyms.base_T, self.arm_ssyms.gravity, self.arm_ssyms.dt, self.arm_ssyms.noise))  # evaluate with symbols
         x_next = res['xf']
 
         # use a dict here
