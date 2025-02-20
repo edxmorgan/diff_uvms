@@ -94,7 +94,7 @@ class Params:
 
     gravity = -9.81
     base_gravity = 9.81
-    base_T0 = [3.142, 0.000, 0.000, 0.140, 0.000, -0.120] #transformation of uv body frame to manipulator base
+    base_T0 = [3.142, 0.000, 0.000, 0.190, 0.000, -0.120] #transformation of uv body frame to manipulator base
 
     sim_n = 100 # time horizon
     delta_t = 0.035
