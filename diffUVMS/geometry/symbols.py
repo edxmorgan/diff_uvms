@@ -6,7 +6,7 @@ class construct_manipulator_syms():
         self.gravity = SX.sym('gravity')
         self.base_gravity = SX.sym('base_gravity')
 
-        self.joint_configurations = SX.sym('joint_configs', 2**n_joints, n_joints)
+        # self.joint_configurations = SX.sym('joint_configs', 2**n_joints, n_joints)
         self.m_u = SX.sym("m_u", n_joints)
 
         self.q_max = SX.sym('q_max', n_joints)
