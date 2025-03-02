@@ -96,8 +96,9 @@ class construct_manipulator_syms():
         self.dn = SX.sym('dn', 6+self.n_joints) # NED velocity
         self.uvms_ul = SX.sym('uvms_ul', 6+self.n_joints)
         self.uvms_ll = SX.sym('uvms_ll', 6+self.n_joints)
-        self.k0 = SX.sym('k0', 6+self.n_joints)
-        self.des_v = SX.sym('des_v', 6) #operational space desired velocity
+        self.w_k = SX.sym('w_k', 6+self.n_joints) #constraint weight in diff_IK
+        self.X_d = SX.sym('X_d', 6) #operational space desired position
+        self.IK_kp = SX.sym('IK_kp',6) #operational space gain
 
     def __repr__(self) -> str:
         return "differentiable manipulator symbols"
