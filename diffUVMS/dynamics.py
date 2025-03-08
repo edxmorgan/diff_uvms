@@ -359,13 +359,12 @@ class RobotDynamics():
   
         i_X_0s = []
         v = []
-        vR = []
-        g_fb = []
         a = []
         aR = []
         f = []
         f_withoutR = []
         fR = []
+        f_grav = []
         fRIC = cs.SX.zeros(n_joints)
         tau_gear = cs.SX.zeros(n_joints)
         tau_motor = cs.SX.zeros(n_joints)
@@ -374,10 +373,11 @@ class RobotDynamics():
         v0 = cs.SX.zeros(6, 1)
         a0 = cs.SX.zeros(6, 1)
 
-        ag = cs.SX.zeros(6, 1)
-        ag[5] = self.arm_ssyms.gravity
+        # ag = cs.SX.zeros(6, 1)
+        # ag[5] = self.arm_ssyms.gravity
         # FORWARD ITERATION
         for i in range(0, n_joints):
+            m_i = self.link_masses[i]
             if i != 0:
                 i_X_0 = plucker.spatial_mtimes(i_X_p[i],i_X_0)
                 v0 = i_X_p[i]@v[i-1]
@@ -385,7 +385,7 @@ class RobotDynamics():
             else:
                 i_X_0 = i_X_p[i]
                 v0 = i_X_0@v0
-                a0 = i_X_0@ag
+                a0 = i_X_0@a0
 
             vJ = Si[i]@q_dot[i]
             v.append(v0 + vJ)  # body i velocity
@@ -397,6 +397,12 @@ class RobotDynamics():
             vi_xf = plucker.force_cross_product(v[i])
             _fb = Ic[i]@a[i] + vi_xf@Ic[i]@v[i]  # body i forces
 
+            # “downward” world gravity force
+            F_ext_i = cs.SX.zeros(6,1)      # [ω, v] in Plücker
+            F_ext_i[5] = -m_i * 9.81        # negative sign => downward in +Z up frames
+            
+            f_grav.append(F_ext_i)
+
             # body force + hydrodynamics calculated
             # _fb = self._apply_body_link_hydrodynamics(i, _fb, v, a, Icom, Im, i_X_0)
 
@@ -406,6 +412,8 @@ class RobotDynamics():
 
             f.append(_fb)
             f_withoutR.append(_fb)
+
+            _fb = self._apply_external_forces(f_grav[i], _fb, i_X_0)
 
             # rotor dynamics
             vRJ = Si[i]*(G[i]*q_dot[i]) # rotor i velocity
@@ -417,6 +425,9 @@ class RobotDynamics():
             _fR = Ir[i]@aR[i] + vRi_xf@Ir[i]@vRJ  # rotor i forces
 
             fR.append(_fR)
+
+            
+
             
         # BACKWARD ITERATION
         for i in range(n_joints - 1, -1, -1):
