@@ -22,41 +22,58 @@ class RobotDynamics():
         self.robot_desc = copy.deepcopy(self.parser.robot_desc_backup)
         self.T_Base = plucker.XT(self.arm_ssyms.baseT_xyz, self.arm_ssyms.baseT_rpy)
 
-    def workspace(self, floating_base = False):
+    def approximate_workspace(self, joint_limits, base_T, floating_base=False, num_samples=100000):
+        """
+        fk_func: a function that takes a vector of joint angles
+                and returns the [x, y, z] end-effector position.
+        joint_limits: list of (min_angle, max_angle) for each joint.
+        num_samples: how many random samples to draw in joint space.
+        """
         _, i_X_0s = self.forward_kinematics(floating_base = floating_base)
         H4 , R4, p4 = plucker.spatial_to_homogeneous(i_X_0s[-1])
         T4_euler = cs.vertcat(p4, plucker.rotation_matrix_to_euler(R4, order='xyz'))
         internal_fk_eval_euler = cs.Function("internal_fkeval_euler", [self.arm_ssyms.n, self.arm_ssyms.base_T], [T4_euler])
 
-        # Initialize extremes
-        min_x = cs.inf
-        max_x = -cs.inf
-        min_y = cs.inf
-        max_y = -cs.inf
-        min_z = cs.inf
-        max_z = -cs.inf
+        n_joints = len(joint_limits)
+        
+        # Arrays to track min/max
+        min_pos = np.array([np.inf, np.inf, np.inf])
+        max_pos = -np.array([np.inf, np.inf, np.inf])
 
-        # Compute extremes
-        for i in range(self.arm_ssyms.joint_configurations.size1()):
-            config = cs.vertcat(self.arm_ssyms.p_n, self.arm_ssyms.joint_configurations[i,:].T)
-            pose = internal_fk_eval_euler(config, self.arm_ssyms.base_T)
-            x = pose[:3][0]
-            y = pose[:3][1]
-            z = pose[:3][2]
+        # collect points for plotting
+        positions = np.zeros((num_samples, 3))
 
-            # Update min and max values
-            min_x = cs.if_else(x < min_x, x, min_x)
-            max_x = cs.if_else(x > max_x, x, max_x)
-            
-            min_y = cs.if_else(y < min_y, y, min_y)
-            max_y = cs.if_else(y > max_y, y, max_y)
-            
-            min_z = cs.if_else(z < min_z, z, min_z)
-            max_z = cs.if_else(z > max_z, z, max_z)
-        workspace = list(zip([min_x, min_y, min_z],
-                            [max_x, max_y, max_z] ))
-        workspace_extreme_points = np.array(list(itertools.product(*workspace)))
-        return min_x, max_x, min_y, max_y, min_z, max_z, workspace_extreme_points
+        for i in range(num_samples):
+            # Sample joint angles
+            thetas = [
+                np.random.uniform(low=joint_limits[j][0], 
+                                high=joint_limits[j][1])
+                for j in range(n_joints)
+            ]
+
+            # Forward kinematics: end-effector position
+            config = cs.vertcat([0,0,0,0,0,0], thetas)
+            # config= cs.vertcat([0, 0, 0, 0, 0, 0, 1.07164, 2.05017, 1.065, 0.926672])
+            # print(f'configuration sent: {config}')
+            pose = internal_fk_eval_euler(config, base_T)
+            # print(f'pose rececievetn: {pose}')
+            x = pose[0]
+            y = pose[1]
+            z = pose[2]
+
+            # Store point for later plotting
+            positions[i] = [float(x), float(y), float(z)]
+
+            # Update min/max
+            if x < min_pos[0]: min_pos[0] = x
+            if x > max_pos[0]: max_pos[0] = x
+            if y < min_pos[1]: min_pos[1] = y
+            if y > max_pos[1]: max_pos[1] = y
+            if z < min_pos[2]: min_pos[2] = z
+            if z > max_pos[2]: max_pos[2] = z
+
+        # min_pos, max_pos define an axis-aligned bounding box
+        return min_pos, max_pos, positions
 
     def forward_kinematics(self, floating_base = False):
         q = self.arm_ssyms.q

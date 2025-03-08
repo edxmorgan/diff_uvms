@@ -4,10 +4,10 @@ A library for generating the kinematics and dynamics of electric underwater robo
 <img src="./resources/uvman.jpg" width="420"/>
 
 ## Todo/Implementation status
-- [x] [floating-base manipulator forward dynamics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/uvms_forward_dynamics.ipynb)
-- [x] [floating-base manipulator inverse dynamics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/uvms_inverse_dynamics.ipynb)
-- [x] [floating-base manipulator forward kinematics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/uvms_forward_kinematics.ipynb)
-- [x] [floating-base manipulator differential inverse kinematics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/redundancy_nullspace_projection_diK.ipynb)
+- [x] [floating-base manipulator forward dynamics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/forward_dynamics.ipynb)
+- [x] [floating-base manipulator inverse dynamics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/dynamics.ipynb)
+- [x] [floating-base manipulator forward kinematics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/forward_kinematics.ipynb)
+- [x] [floating-base manipulator differential inverse kinematics](https://github.com/edxmorgan/diff_uvms/blob/main/usage/example/redundancy_inverse_kinematics.ipynb)
 
 For usage examples of Diff_UVMS, see [Jupyter notebook](https://github.com/edxmorgan/Diff_UVMS/tree/main/usage/example).
 
