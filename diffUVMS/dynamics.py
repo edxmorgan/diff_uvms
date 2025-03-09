@@ -543,7 +543,7 @@ class RobotDynamics():
         sys['ode'] = rhs 
 
         intg = cs.integrator('intg', 'rk', sys, 0, 1, {
-                            'simplify': True, 'number_of_finite_elements': 100})
+                            'simplify': True, 'number_of_finite_elements': 40})
         
         u_checks = copy.deepcopy(u)
         states_checks = copy.deepcopy(states)
